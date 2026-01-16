@@ -38,7 +38,6 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { useCustomers, CustomerFormData, Customer } from "@/hooks/useCustomers";
-import { useOrders, OrderFormData } from "@/hooks/useOrders";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -57,16 +56,8 @@ const emptyFormData: CustomerFormData = {
   status: "prospek",
 };
 
-const emptyOrderFormData: OrderFormData = {
-  customer_id: "",
-  value: 0,
-  wa_desc: "",
-  notes: "",
-};
-
 export default function Pelanggan() {
   const { customers, loading, addCustomer, deleteCustomer, updateCustomer, refetch } = useCustomers();
-  const { addOrder } = useOrders();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -80,16 +71,11 @@ export default function Pelanggan() {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
   
-  // Order dialog state
-  const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
-  const [orderFormData, setOrderFormData] = useState<OrderFormData>(emptyOrderFormData);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [isOrderSubmitting, setIsOrderSubmitting] = useState(false);
-  
   // SPH dialog state
   const [isSphDialogOpen, setIsSphDialogOpen] = useState(false);
   const [sphLink, setSphLink] = useState("");
   const [isSphSubmitting, setIsSphSubmitting] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
   const filteredCustomers = customers.filter((customer) => {
     const matchesSearch = customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -187,46 +173,6 @@ export default function Pelanggan() {
     }
   };
 
-  // Handle Order creation
-  const handleCreateOrder = (customer: Customer) => {
-    setOrderFormData({ ...emptyOrderFormData, customer_id: customer.id });
-    setSelectedCustomer(customer);
-    setIsOrderDialogOpen(true);
-  };
-
-  const handleOrderSubmit = async () => {
-    if (!orderFormData.customer_id || !orderFormData.value) return;
-    
-    setIsOrderSubmitting(true);
-    const success = await addOrder(orderFormData);
-    
-    if (success && selectedCustomer && selectedCustomer.status === "prospek") {
-      // Update customer status to aktif
-      await updateCustomer(selectedCustomer.id, {
-        ...selectedCustomer,
-        phones: selectedCustomer.phones || [],
-        address: selectedCustomer.address || "",
-        status: "aktif",
-      });
-    }
-    
-    setIsOrderSubmitting(false);
-    
-    if (success) {
-      setOrderFormData(emptyOrderFormData);
-      setIsOrderDialogOpen(false);
-      setSelectedCustomer(null);
-    }
-  };
-
-  const handleOrderDialogClose = (open: boolean) => {
-    setIsOrderDialogOpen(open);
-    if (!open) {
-      setOrderFormData(emptyOrderFormData);
-      setSelectedCustomer(null);
-    }
-  };
-
   // Handle SPH (Surat Penawaran Harga)
   const handleCreateSph = (customer: Customer) => {
     setSelectedCustomer(customer);
@@ -259,10 +205,6 @@ export default function Pelanggan() {
     setIsSphSubmitting(false);
     setIsSphDialogOpen(false);
     setSelectedCustomer(null);
-  };
-
-  const openCanvaSph = () => {
-    window.open("https://www.canva.com/design/new?template=sph", "_blank");
   };
 
   const openSphLink = (link: string) => {
@@ -330,7 +272,6 @@ export default function Pelanggan() {
                 <TableHead>Kota</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-center">SPH</TableHead>
-                <TableHead className="text-center">Order</TableHead>
                 <TableHead className="w-[60px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -373,15 +314,6 @@ export default function Pelanggan() {
                           </Button>
                         )}
                       </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Button
-                        size="sm"
-                        onClick={() => handleCreateOrder(customer)}
-                      >
-                        <Plus className="mr-1 h-3 w-3" />
-                        Buat Order
-                      </Button>
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -621,90 +553,24 @@ export default function Pelanggan() {
           </DialogContent>
         </Dialog>
 
-        {/* Create Order Dialog */}
-        <Dialog open={isOrderDialogOpen} onOpenChange={handleOrderDialogClose}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Buat Order Baru</DialogTitle>
-              <DialogDescription>
-                Buat order untuk {selectedCustomer?.name}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              {selectedCustomer && (
-                <div className="rounded-lg border border-border bg-muted/30 p-3">
-                  <p className="font-medium">{selectedCustomer.name}</p>
-                  <p className="text-sm text-muted-foreground">PIC: {selectedCustomer.pic_name}</p>
-                  <p className="text-sm text-muted-foreground">{selectedCustomer.city}</p>
-                </div>
-              )}
-              <div className="grid gap-2">
-                <Label htmlFor="order_value">Nilai Order (Rp) *</Label>
-                <Input 
-                  id="order_value" 
-                  type="number" 
-                  placeholder="45000000" 
-                  value={orderFormData.value || ""}
-                  onChange={(e) => setOrderFormData(prev => ({ ...prev, value: parseFloat(e.target.value) || 0 }))}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="wa_desc">Deskripsi Grup WhatsApp</Label>
-                <Textarea
-                  id="wa_desc"
-                  placeholder="Masukkan deskripsi untuk grup WhatsApp"
-                  value={orderFormData.wa_desc}
-                  onChange={(e) => setOrderFormData(prev => ({ ...prev, wa_desc: e.target.value }))}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="order_notes">Catatan Internal</Label>
-                <Textarea
-                  id="order_notes"
-                  placeholder="Catatan tambahan untuk order ini"
-                  value={orderFormData.notes}
-                  onChange={(e) => setOrderFormData(prev => ({ ...prev, notes: e.target.value }))}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => handleOrderDialogClose(false)}>
-                Batal
-              </Button>
-              <Button onClick={handleOrderSubmit} disabled={!orderFormData.value || isOrderSubmitting}>
-                {isOrderSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                <Plus className="mr-2 h-4 w-4" />
-                Buat Order
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* SPH Dialog */}
+        {/* SPH Dialog - Manual Link Only */}
         <Dialog open={isSphDialogOpen} onOpenChange={(open) => { setIsSphDialogOpen(open); if (!open) setSelectedCustomer(null); }}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle>Buat SPH</DialogTitle>
+              <DialogTitle>Konfigurasi Link SPH</DialogTitle>
               <DialogDescription>
                 Surat Penawaran Harga untuk {selectedCustomer?.name}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="rounded-lg border border-border p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <p className="font-medium">{selectedCustomer?.name}</p>
-                    <p className="text-sm text-muted-foreground">PIC: {selectedCustomer?.pic_name}</p>
-                  </div>
-                  <Button variant="outline" onClick={openCanvaSph}>
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    Buka Template Canva
-                  </Button>
-                </div>
+              <div className="rounded-lg border border-border bg-muted/30 p-3">
+                <p className="font-medium">{selectedCustomer?.name}</p>
+                <p className="text-sm text-muted-foreground">PIC: {selectedCustomer?.pic_name}</p>
+                <p className="text-sm text-muted-foreground">{selectedCustomer?.city}</p>
               </div>
               
               <div className="grid gap-2">
-                <Label htmlFor="sph_link">Link SPH (Opsional)</Label>
+                <Label htmlFor="sph_link">Link SPH</Label>
                 <div className="flex gap-2">
                   <Input 
                     id="sph_link" 
@@ -719,7 +585,7 @@ export default function Pelanggan() {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Simpan link SPH yang sudah dibuat untuk akses cepat di kemudian hari
+                  Masukkan link SPH dari Canva atau sumber lainnya
                 </p>
               </div>
             </div>
