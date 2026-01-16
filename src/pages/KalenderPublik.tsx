@@ -11,12 +11,8 @@ interface CalendarEvent {
   type: "meeting" | "photo" | "design" | "print";
   date: string;
   time: string;
-  customer_id: string | null;
   notes: string | null;
   created_at: string;
-  customers?: {
-    name: string;
-  };
 }
 
 const DAYS = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
@@ -45,9 +41,10 @@ export default function KalenderPublik() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
+        // Fetch only calendar_events without customer join (public access)
         const { data, error } = await supabase
           .from("calendar_events")
-          .select(`*, customers(name)`)
+          .select(`id, title, type, date, time, notes, created_at`)
           .order("date", { ascending: true });
 
         if (error) throw error;
@@ -293,9 +290,6 @@ export default function KalenderPublik() {
                               </div>
                               <div className="flex-1">
                                 <p className="font-medium">{event.title}</p>
-                                {event.customers?.name && (
-                                  <p className="text-sm text-muted-foreground">{event.customers.name}</p>
-                                )}
                                 <p className="mt-1 text-sm text-muted-foreground">{event.time}</p>
                               </div>
                             </div>
@@ -349,9 +343,6 @@ export default function KalenderPublik() {
                       </div>
                       <div className="flex-1">
                         <p className="font-medium">{event.title}</p>
-                        {event.customers?.name && (
-                          <p className="text-sm text-muted-foreground">{event.customers.name}</p>
-                        )}
                       </div>
                       <div className="text-right">
                         <p className="font-medium">
