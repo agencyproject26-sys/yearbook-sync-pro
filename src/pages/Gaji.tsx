@@ -131,15 +131,6 @@ export default function Gaji() {
     }
   };
 
-  const totalByCategory = {
-    photographer: salaries.filter(s => s.category === "photographer").reduce((sum, s) => sum + s.amount, 0),
-    design: salaries.filter(s => s.category === "design").reduce((sum, s) => sum + s.amount, 0),
-    print: salaries.filter(s => s.category === "print").reduce((sum, s) => sum + s.amount, 0),
-    other: salaries.filter(s => s.category === "other").reduce((sum, s) => sum + s.amount, 0),
-  };
-
-  const totalAll = Object.values(totalByCategory).reduce((sum, val) => sum + val, 0);
-
   return (
     <MainLayout>
       <Header
