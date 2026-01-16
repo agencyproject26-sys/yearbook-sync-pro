@@ -10,6 +10,7 @@ export interface Customer {
   city: string;
   address: string | null;
   status: "prospek" | "aktif" | "selesai";
+  sph_link: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -22,6 +23,14 @@ export interface CustomerFormData {
   address: string;
   status: "prospek" | "aktif" | "selesai";
 }
+
+export const updateCustomerSphLink = async (supabase: any, id: string, sph_link: string) => {
+  const { error } = await supabase
+    .from("customers")
+    .update({ sph_link })
+    .eq("id", id);
+  return !error;
+};
 
 export const useCustomers = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Filter, MoreHorizontal, Download, Eye, Plus, Send } from "lucide-react";
+import { Search, Filter, MoreHorizontal, Download, Eye, Plus, Send, Loader2, Pencil, Trash2 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -26,99 +26,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-
-interface Invoice {
-  id: string;
-  customer: string;
-  school: string;
-  amount: number;
-  dueDate: string;
-  status: "draft" | "sent" | "paid" | "overdue";
-  createdAt: string;
-}
-
-interface InvoiceItem {
-  description: string;
-  qty: string;
-  price: string;
-}
-
-interface InvoiceFormData {
-  customerId: string;
-  school: string;
-  customer: string;
-  dueDate: string;
-  items: InvoiceItem[];
-  dpDate: string;
-  dpAmount: string;
-  pelunasanDate: string;
-  pelunasanAmount: string;
-}
+import { useInvoices, type InvoiceFormData, type Invoice, type PaymentTerm } from "@/hooks/useInvoices";
+import { useCustomers } from "@/hooks/useCustomers";
 
 const statusConfig = {
   draft: { label: "Draft", className: "bg-muted text-muted-foreground" },
   sent: { label: "Terkirim", className: "bg-info/15 text-info" },
   paid: { label: "Lunas", className: "bg-success/15 text-success" },
   overdue: { label: "Terlambat", className: "bg-destructive/15 text-destructive" },
-};
-
-const mockCustomers = [
-  { id: "sma1", name: "SMA Negeri 1 Jakarta", pic: "Bpk. Ahmad" },
-  { id: "smpazhar", name: "SMP Islam Al-Azhar", pic: "Ibu Sari" },
-  { id: "sdtar", name: "SD Tarakanita", pic: "Bpk. Budi" },
-];
-
-const initialMockInvoices: Invoice[] = [
-  {
-    id: "INV-2026-001",
-    customer: "Bpk. Ahmad",
-    school: "SMA Negeri 1 Jakarta",
-    amount: 45000000,
-    dueDate: "2026-02-15",
-    status: "sent",
-    createdAt: "2026-01-15",
-  },
-  {
-    id: "INV-2026-002",
-    customer: "Ibu Sari",
-    school: "SMP Islam Al-Azhar",
-    amount: 32000000,
-    dueDate: "2026-02-14",
-    status: "paid",
-    createdAt: "2026-01-14",
-  },
-  {
-    id: "INV-2025-048",
-    customer: "Bpk. Budi",
-    school: "SD Tarakanita",
-    amount: 28000000,
-    dueDate: "2026-01-10",
-    status: "overdue",
-    createdAt: "2025-12-10",
-  },
-  {
-    id: "INV-2026-003",
-    customer: "Ibu Dewi",
-    school: "SMA Gonzaga",
-    amount: 52000000,
-    dueDate: "2026-02-20",
-    status: "draft",
-    createdAt: "2026-01-16",
-  },
-];
-
-const emptyFormData: InvoiceFormData = {
-  customerId: "",
-  school: "",
-  customer: "",
-  dueDate: "",
-  items: [{ description: "", qty: "", price: "" }],
-  dpDate: "",
-  dpAmount: "",
-  pelunasanDate: "",
-  pelunasanAmount: "",
 };
 
 const formatCurrency = (value: number) => {
@@ -129,86 +54,179 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
+interface InvoiceItem {
+  description: string;
+  qty: string;
+  price: string;
+}
+
+const emptyFormData: InvoiceFormData = {
+  customer_id: "",
+  due_date: "",
+  items: [{ description: "", qty: 0, price: 0 }],
+  payment_terms: [],
+};
+
+const emptyPaymentTerm: PaymentTerm = {
+  id: "",
+  name: "Termin 1",
+  percentage: 0,
+  amount: 0,
+  date: null,
+  paid: false,
+};
+
 export default function Invoice() {
-  const [invoices, setInvoices] = useState<Invoice[]>(initialMockInvoices);
+  const { invoices, loading, addInvoice, updateInvoice } = useInvoices();
+  const { customers } = useCustomers();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isTerminDialogOpen, setIsTerminDialogOpen] = useState(false);
+  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [formData, setFormData] = useState<InvoiceFormData>(emptyFormData);
+  const [formItems, setFormItems] = useState<InvoiceItem[]>([{ description: "", qty: "", price: "" }]);
+  const [paymentTerms, setPaymentTerms] = useState<PaymentTerm[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const filteredInvoices = invoices.filter((invoice) => {
     const matchesSearch =
-      invoice.school.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      invoice.id.toLowerCase().includes(searchQuery.toLowerCase());
+      invoice.customers?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      invoice.invoice_number.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || invoice.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
   const unpaidTotal = invoices
     .filter((inv) => inv.status !== "paid")
-    .reduce((sum, inv) => sum + inv.amount, 0);
-
-  const handleCustomerSelect = (customerId: string) => {
-    const customer = mockCustomers.find(c => c.id === customerId);
-    if (customer) {
-      setFormData(prev => ({
-        ...prev,
-        customerId,
-        school: customer.name,
-        customer: customer.pic,
-      }));
-    }
-  };
+    .reduce((sum, inv) => sum + Number(inv.amount), 0);
 
   const handleAddItem = () => {
-    setFormData(prev => ({
-      ...prev,
-      items: [...prev.items, { description: "", qty: "", price: "" }],
-    }));
+    setFormItems(prev => [...prev, { description: "", qty: "", price: "" }]);
   };
 
   const handleItemChange = (index: number, field: keyof InvoiceItem, value: string) => {
-    const newItems = [...formData.items];
+    const newItems = [...formItems];
     newItems[index][field] = value;
-    setFormData(prev => ({ ...prev, items: newItems }));
+    setFormItems(newItems);
+  };
+
+  const handleRemoveItem = (index: number) => {
+    if (formItems.length > 1) {
+      setFormItems(prev => prev.filter((_, i) => i !== index));
+    }
   };
 
   const calculateTotal = () => {
-    return formData.items.reduce((sum, item) => {
+    return formItems.reduce((sum, item) => {
       const qty = parseFloat(item.qty) || 0;
       const price = parseFloat(item.price) || 0;
       return sum + (qty * price);
     }, 0);
   };
 
-  const handleSubmit = () => {
-    if (!formData.customerId || !formData.dueDate || formData.items.length === 0) {
+  // Payment Terms handlers
+  const handleAddPaymentTerm = () => {
+    const termNumber = paymentTerms.length + 1;
+    setPaymentTerms(prev => [...prev, {
+      ...emptyPaymentTerm,
+      id: crypto.randomUUID(),
+      name: `Termin ${termNumber}`,
+    }]);
+  };
+
+  const handleTermChange = (index: number, field: keyof PaymentTerm, value: any) => {
+    const newTerms = [...paymentTerms];
+    (newTerms[index] as any)[field] = value;
+    
+    // Auto-calculate amount if percentage changes
+    if (field === "percentage") {
+      const total = calculateTotal();
+      newTerms[index].amount = (total * (parseFloat(value) || 0)) / 100;
+    }
+    
+    setPaymentTerms(newTerms);
+  };
+
+  const handleRemoveTerm = (index: number) => {
+    setPaymentTerms(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.customer_id || !formData.due_date || formItems.every(i => !i.description)) {
       return;
     }
 
-    const invoiceNumber = String(invoices.length + 1).padStart(3, "0");
-    const newInvoice: Invoice = {
-      id: `INV-2026-${invoiceNumber}`,
-      customer: formData.customer,
-      school: formData.school,
-      amount: calculateTotal(),
-      dueDate: formData.dueDate,
-      status: "draft",
-      createdAt: new Date().toISOString().split("T")[0],
+    setIsSubmitting(true);
+    const invoiceData: InvoiceFormData = {
+      customer_id: formData.customer_id,
+      due_date: formData.due_date,
+      items: formItems.map(item => ({
+        description: item.description,
+        qty: parseFloat(item.qty) || 0,
+        price: parseFloat(item.price) || 0,
+      })),
+      payment_terms: paymentTerms,
     };
 
-    setInvoices(prev => [newInvoice, ...prev]);
-    setFormData(emptyFormData);
-    setIsDialogOpen(false);
+    const success = await addInvoice(invoiceData);
+    setIsSubmitting(false);
+    
+    if (success) {
+      setFormData(emptyFormData);
+      setFormItems([{ description: "", qty: "", price: "" }]);
+      setPaymentTerms([]);
+      setIsDialogOpen(false);
+    }
   };
 
   const handleDialogClose = (open: boolean) => {
     setIsDialogOpen(open);
     if (!open) {
       setFormData(emptyFormData);
+      setFormItems([{ description: "", qty: "", price: "" }]);
+      setPaymentTerms([]);
     }
   };
+
+  // Edit Payment Terms
+  const handleOpenTerminDialog = (invoice: Invoice) => {
+    setEditingInvoice(invoice);
+    setPaymentTerms(invoice.payment_terms || []);
+    setIsTerminDialogOpen(true);
+  };
+
+  const handleSaveTerms = async () => {
+    if (!editingInvoice) return;
+    
+    setIsSubmitting(true);
+    await updateInvoice(editingInvoice.id, { payment_terms: paymentTerms });
+    setIsSubmitting(false);
+    setIsTerminDialogOpen(false);
+    setEditingInvoice(null);
+    setPaymentTerms([]);
+  };
+
+  // Calculate paid amount for an invoice
+  const getPaidAmount = (invoice: Invoice) => {
+    return (invoice.payment_terms || [])
+      .filter(term => term.paid)
+      .reduce((sum, term) => sum + (term.amount || 0), 0);
+  };
+
+  const getRemainingAmount = (invoice: Invoice) => {
+    return Number(invoice.amount) - getPaidAmount(invoice);
+  };
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="flex h-full items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
@@ -270,35 +288,82 @@ export default function Invoice() {
         </div>
 
         {/* Invoices Table */}
-        <div className="rounded-xl border border-border bg-card overflow-hidden">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>No. Invoice</th>
-                <th>Sekolah</th>
-                <th>PIC</th>
-                <th>Jumlah</th>
-                <th>Jatuh Tempo</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
+        <div className="rounded-xl border border-border bg-card overflow-hidden overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>No. Invoice</TableHead>
+                <TableHead>Pelanggan</TableHead>
+                <TableHead className="text-right">Total Invoice</TableHead>
+                <TableHead>Tahap Pembayaran</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-[100px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {filteredInvoices.map((invoice) => {
                 const status = statusConfig[invoice.status];
+                const paidAmount = getPaidAmount(invoice);
+                const remainingAmount = getRemainingAmount(invoice);
+                
                 return (
-                  <tr key={invoice.id}>
-                    <td className="font-medium">{invoice.id}</td>
-                    <td>{invoice.school}</td>
-                    <td className="text-muted-foreground">{invoice.customer}</td>
-                    <td className="font-semibold">{formatCurrency(invoice.amount)}</td>
-                    <td className="text-muted-foreground">{invoice.dueDate}</td>
-                    <td>
-                      <Badge className={status.className}>{status.label}</Badge>
-                    </td>
-                    <td>
+                  <TableRow key={invoice.id}>
+                    <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{invoice.customers?.name}</p>
+                        <p className="text-xs text-muted-foreground">{invoice.customers?.pic_name}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">{formatCurrency(Number(invoice.amount))}</TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        {(invoice.payment_terms || []).length > 0 ? (
+                          <>
+                            {invoice.payment_terms.slice(0, 2).map((term, idx) => (
+                              <div key={term.id || idx} className="flex items-center gap-2">
+                                <Badge 
+                                  variant="outline" 
+                                  className={cn(
+                                    "text-xs",
+                                    term.paid ? "bg-success/10 text-success border-success" : ""
+                                  )}
+                                >
+                                  {term.name} - {term.percentage}%
+                                </Badge>
+                              </div>
+                            ))}
+                            {invoice.payment_terms.length > 2 && (
+                              <p className="text-xs text-muted-foreground">+{invoice.payment_terms.length - 2} termin lainnya</p>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Belum ada termin</span>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => handleOpenTerminDialog(invoice)}
+                        >
+                          <Pencil className="mr-1 h-3 w-3" />
+                          Edit Termin
+                        </Button>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <Badge className={status.className}>{status.label}</Badge>
+                        {remainingAmount > 0 && invoice.status !== "paid" && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Sisa: {formatCurrency(remainingAmount)}
+                          </p>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => setIsPreviewOpen(true)}>
+                        <Button variant="ghost" size="icon">
                           <Eye className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon">
@@ -312,24 +377,23 @@ export default function Invoice() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem>Lihat Detail</DropdownMenuItem>
-                            <DropdownMenuItem>Edit Invoice</DropdownMenuItem>
                             <DropdownMenuItem>Kirim ke Pelanggan</DropdownMenuItem>
                             <DropdownMenuItem>Tandai Lunas</DropdownMenuItem>
                             <DropdownMenuItem className="text-destructive">Hapus</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
 
         {/* Create Invoice Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Buat Invoice Baru</DialogTitle>
               <DialogDescription>
@@ -340,12 +404,12 @@ export default function Invoice() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label>Pelanggan *</Label>
-                  <Select value={formData.customerId} onValueChange={handleCustomerSelect}>
+                  <Select value={formData.customer_id} onValueChange={(value) => setFormData(prev => ({ ...prev, customer_id: value }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih sekolah" />
                     </SelectTrigger>
                     <SelectContent>
-                      {mockCustomers.map(c => (
+                      {customers.map(c => (
                         <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                       ))}
                     </SelectContent>
@@ -355,8 +419,8 @@ export default function Invoice() {
                   <Label>Jatuh Tempo *</Label>
                   <Input 
                     type="date" 
-                    value={formData.dueDate}
-                    onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
+                    value={formData.due_date}
+                    onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
                   />
                 </div>
               </div>
@@ -368,9 +432,10 @@ export default function Invoice() {
                     <div className="col-span-5">Deskripsi</div>
                     <div className="col-span-2">Qty</div>
                     <div className="col-span-2">Harga</div>
-                    <div className="col-span-3">Total</div>
+                    <div className="col-span-2">Total</div>
+                    <div className="col-span-1"></div>
                   </div>
-                  {formData.items.map((item, index) => (
+                  {formItems.map((item, index) => (
                     <div key={index} className="grid grid-cols-12 gap-2">
                       <Input 
                         className="col-span-5" 
@@ -393,10 +458,19 @@ export default function Invoice() {
                         onChange={(e) => handleItemChange(index, "price", e.target.value)}
                       />
                       <Input 
-                        className="col-span-3" 
+                        className="col-span-2" 
                         value={formatCurrency((parseFloat(item.qty) || 0) * (parseFloat(item.price) || 0))} 
                         readOnly 
                       />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="col-span-1"
+                        onClick={() => handleRemoveItem(index)}
+                        disabled={formItems.length === 1}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   ))}
                   <div className="flex justify-between items-center">
@@ -412,46 +486,62 @@ export default function Invoice() {
               </div>
 
               <div className="rounded-lg border border-border p-4">
-                <h4 className="mb-3 font-medium">Tahap Pembayaran</h4>
-                <div className="space-y-3">
-                  <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground">
-                    <div className="col-span-4">Tahap</div>
-                    <div className="col-span-4">Tanggal</div>
-                    <div className="col-span-4">Jumlah</div>
-                  </div>
-                  <div className="grid grid-cols-12 gap-2">
-                    <Input className="col-span-4" value="DP 50%" readOnly />
-                    <Input 
-                      className="col-span-4" 
-                      type="date" 
-                      value={formData.dpDate}
-                      onChange={(e) => setFormData(prev => ({ ...prev, dpDate: e.target.value }))}
-                    />
-                    <Input 
-                      className="col-span-4" 
-                      type="number"
-                      placeholder="22500000" 
-                      value={formData.dpAmount}
-                      onChange={(e) => setFormData(prev => ({ ...prev, dpAmount: e.target.value }))}
-                    />
-                  </div>
-                  <div className="grid grid-cols-12 gap-2">
-                    <Input className="col-span-4" value="Pelunasan 50%" readOnly />
-                    <Input 
-                      className="col-span-4" 
-                      type="date" 
-                      value={formData.pelunasanDate}
-                      onChange={(e) => setFormData(prev => ({ ...prev, pelunasanDate: e.target.value }))}
-                    />
-                    <Input 
-                      className="col-span-4" 
-                      type="number"
-                      placeholder="22500000" 
-                      value={formData.pelunasanAmount}
-                      onChange={(e) => setFormData(prev => ({ ...prev, pelunasanAmount: e.target.value }))}
-                    />
-                  </div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-medium">Tahap Pembayaran (Termin)</h4>
+                  <Button variant="outline" size="sm" onClick={handleAddPaymentTerm}>
+                    <Plus className="mr-2 h-3 w-3" />
+                    Tambah Termin
+                  </Button>
                 </div>
+                {paymentTerms.length > 0 ? (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground">
+                      <div className="col-span-3">Nama</div>
+                      <div className="col-span-2">Persentase</div>
+                      <div className="col-span-3">Jumlah</div>
+                      <div className="col-span-3">Tanggal</div>
+                      <div className="col-span-1"></div>
+                    </div>
+                    {paymentTerms.map((term, index) => (
+                      <div key={term.id} className="grid grid-cols-12 gap-2">
+                        <Input 
+                          className="col-span-3" 
+                          value={term.name}
+                          onChange={(e) => handleTermChange(index, "name", e.target.value)}
+                        />
+                        <div className="col-span-2 flex items-center gap-1">
+                          <Input 
+                            type="number" 
+                            value={term.percentage || ""}
+                            onChange={(e) => handleTermChange(index, "percentage", parseFloat(e.target.value) || 0)}
+                          />
+                          <span className="text-sm">%</span>
+                        </div>
+                        <Input 
+                          className="col-span-3" 
+                          value={formatCurrency(term.amount || 0)} 
+                          readOnly 
+                        />
+                        <Input 
+                          className="col-span-3" 
+                          type="date" 
+                          value={term.date || ""}
+                          onChange={(e) => handleTermChange(index, "date", e.target.value)}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="col-span-1"
+                          onClick={() => handleRemoveTerm(index)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Belum ada termin pembayaran. Klik "Tambah Termin" untuk menambahkan.</p>
+                )}
               </div>
             </div>
             <DialogFooter>
@@ -460,8 +550,9 @@ export default function Invoice() {
               </Button>
               <Button 
                 onClick={handleSubmit} 
-                disabled={!formData.customerId || !formData.dueDate || formData.items.every(i => !i.description)}
+                disabled={!formData.customer_id || !formData.due_date || formItems.every(i => !i.description) || isSubmitting}
               >
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <Plus className="mr-2 h-4 w-4" />
                 Buat Invoice
               </Button>
@@ -469,105 +560,109 @@ export default function Invoice() {
           </DialogContent>
         </Dialog>
 
-        {/* Invoice Preview Dialog */}
-        <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        {/* Edit Payment Terms Dialog */}
+        <Dialog open={isTerminDialogOpen} onOpenChange={(open) => { setIsTerminDialogOpen(open); if (!open) { setEditingInvoice(null); setPaymentTerms([]); } }}>
           <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Preview Invoice</DialogTitle>
+              <DialogTitle>Edit Tahap Pembayaran</DialogTitle>
+              <DialogDescription>
+                Kelola termin pembayaran untuk invoice {editingInvoice?.invoice_number}
+              </DialogDescription>
             </DialogHeader>
-            <div className="rounded-lg border border-border bg-white p-8 text-foreground">
-              {/* Header */}
-              <div className="mb-8 flex items-start justify-between border-b border-border pb-6">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-primary text-2xl font-bold text-primary-foreground">
-                    CS
+            <div className="py-4">
+              {editingInvoice && (
+                <div className="mb-4 p-3 rounded-lg border border-border bg-muted/30">
+                  <p className="font-medium">{editingInvoice.customers?.name}</p>
+                  <p className="text-sm text-muted-foreground">Total: {formatCurrency(Number(editingInvoice.amount))}</p>
+                </div>
+              )}
+              
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-medium">Termin Pembayaran</h4>
+                <Button variant="outline" size="sm" onClick={handleAddPaymentTerm}>
+                  <Plus className="mr-2 h-3 w-3" />
+                  Tambah Termin
+                </Button>
+              </div>
+              
+              {paymentTerms.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground">
+                    <div className="col-span-3">Nama</div>
+                    <div className="col-span-2">Persentase</div>
+                    <div className="col-span-2">Jumlah</div>
+                    <div className="col-span-2">Tanggal</div>
+                    <div className="col-span-2">Status</div>
+                    <div className="col-span-1"></div>
                   </div>
-                  <div>
-                    <h2 className="text-xl font-bold">PT CREATIVE SHOOT INDONESIA</h2>
-                    <p className="text-sm text-muted-foreground">Vendor Buku Tahunan Sekolah</p>
-                    <p className="text-sm text-muted-foreground">Jl. Raya Serpong No. 123, Tangerang Selatan</p>
-                  </div>
+                  {paymentTerms.map((term, index) => (
+                    <div key={term.id} className="grid grid-cols-12 gap-2 items-center">
+                      <Input 
+                        className="col-span-3" 
+                        value={term.name}
+                        onChange={(e) => handleTermChange(index, "name", e.target.value)}
+                      />
+                      <div className="col-span-2 flex items-center gap-1">
+                        <Input 
+                          type="number" 
+                          value={term.percentage || ""}
+                          onChange={(e) => {
+                            const percentage = parseFloat(e.target.value) || 0;
+                            const amount = (Number(editingInvoice?.amount || 0) * percentage) / 100;
+                            const newTerms = [...paymentTerms];
+                            newTerms[index].percentage = percentage;
+                            newTerms[index].amount = amount;
+                            setPaymentTerms(newTerms);
+                          }}
+                        />
+                        <span className="text-sm">%</span>
+                      </div>
+                      <Input 
+                        className="col-span-2" 
+                        type="number"
+                        value={term.amount || ""}
+                        onChange={(e) => handleTermChange(index, "amount", parseFloat(e.target.value) || 0)}
+                      />
+                      <Input 
+                        className="col-span-2" 
+                        type="date" 
+                        value={term.date || ""}
+                        onChange={(e) => handleTermChange(index, "date", e.target.value)}
+                      />
+                      <div className="col-span-2">
+                        <Select 
+                          value={term.paid ? "paid" : "unpaid"} 
+                          onValueChange={(value) => handleTermChange(index, "paid", value === "paid")}
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="unpaid">Belum Lunas</SelectItem>
+                            <SelectItem value="paid">Lunas</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="col-span-1"
+                        onClick={() => handleRemoveTerm(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
-                <div className="text-right">
-                  <h1 className="text-3xl font-bold text-primary">INVOICE</h1>
-                  <p className="mt-1 text-sm text-muted-foreground">#INV-2026-001</p>
-                </div>
-              </div>
-
-              {/* Info */}
-              <div className="mb-8 grid grid-cols-2 gap-8">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Kepada:</p>
-                  <p className="font-semibold">SMA Negeri 1 Jakarta</p>
-                  <p className="text-sm text-muted-foreground">Bpk. Ahmad</p>
-                  <p className="text-sm text-muted-foreground">Jl. Sudirman No. 123, Jakarta Selatan</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground">Tanggal: 15 Januari 2026</p>
-                  <p className="text-sm text-muted-foreground">Jatuh Tempo: 15 Februari 2026</p>
-                </div>
-              </div>
-
-              {/* Table */}
-              <table className="mb-8 w-full">
-                <thead>
-                  <tr className="border-b border-t border-border bg-muted/50">
-                    <th className="px-4 py-3 text-left text-sm font-semibold">Deskripsi</th>
-                    <th className="px-4 py-3 text-center text-sm font-semibold">Qty</th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold">Harga</th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b border-border">
-                    <td className="px-4 py-3 text-sm">Buku Tahunan SMA - Premium Edition</td>
-                    <td className="px-4 py-3 text-center text-sm">100</td>
-                    <td className="px-4 py-3 text-right text-sm">Rp 450.000</td>
-                    <td className="px-4 py-3 text-right text-sm font-medium">Rp 45.000.000</td>
-                  </tr>
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td colSpan={3} className="px-4 py-3 text-right font-semibold">Subtotal</td>
-                    <td className="px-4 py-3 text-right font-bold">Rp 45.000.000</td>
-                  </tr>
-                </tfoot>
-              </table>
-
-              {/* Payment Info */}
-              <div className="mb-8 rounded-lg bg-muted/50 p-4">
-                <p className="mb-2 text-sm font-semibold">Transfer ke:</p>
-                <p className="text-sm">Bank BCA: <span className="font-mono font-semibold">5213700099</span></p>
-                <p className="text-sm">a.n PT CREATIVE SHOOT INDONESIA</p>
-              </div>
-
-              {/* Footer */}
-              <div className="flex items-end justify-between border-t border-border pt-6">
-                <div>
-                  <p className="text-sm text-muted-foreground">Terima kasih atas kepercayaan Anda.</p>
-                  <p className="text-xs text-muted-foreground">Syarat & Ketentuan berlaku.</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-medium">Hormat kami,</p>
-                  <div className="my-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-lg font-bold text-primary-foreground mx-auto">
-                    CS
-                  </div>
-                  <p className="font-semibold">Sofyan Septiyadi</p>
-                  <p className="text-sm text-muted-foreground">Owner Project</p>
-                </div>
-              </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Belum ada termin pembayaran.</p>
+              )}
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsPreviewOpen(false)}>
-                Tutup
-              </Button>
-              <Button variant="outline">
-                <Send className="mr-2 h-4 w-4" />
-                Kirim
-              </Button>
-              <Button>
-                <Download className="mr-2 h-4 w-4" />
-                Download PDF
+              <Button variant="outline" onClick={() => setIsTerminDialogOpen(false)}>Batal</Button>
+              <Button onClick={handleSaveTerms} disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Simpan Perubahan
               </Button>
             </DialogFooter>
           </DialogContent>
