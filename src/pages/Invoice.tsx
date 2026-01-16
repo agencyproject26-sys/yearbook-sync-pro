@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { Search, Filter, MoreHorizontal, Download, Eye, Plus, Send, Loader2, Pencil, Trash2, Upload, ImageIcon, Printer } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Search, Filter, MoreHorizontal, Download, Eye, Plus, Send, Loader2, Pencil, Trash2, Upload, ImageIcon, Printer, Settings, Check } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -38,7 +38,8 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useInvoices, type InvoiceFormData, type Invoice, type PaymentTerm } from "@/hooks/useInvoices";
 import { useCustomers } from "@/hooks/useCustomers";
-import { supabase } from "@/integrations/supabase/client";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { useToast } from "@/hooks/use-toast";
 import { InvoicePreview } from "@/components/invoice/InvoicePreview";
 
 const statusConfig = {
@@ -82,21 +83,42 @@ const emptyPaymentTerm: PaymentTerm = {
 export default function Invoice() {
   const { invoices, loading, addInvoice, updateInvoice } = useInvoices();
   const { customers } = useCustomers();
+  const { settings: companySettings, uploadLogo, uploadSignature, saveSettings, loading: settingsLoading } = useCompanySettings();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isTerminDialogOpen, setIsTerminDialogOpen] = useState(false);
   const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
+  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [formData, setFormData] = useState<InvoiceFormData>(emptyFormData);
   const [formItems, setFormItems] = useState<InvoiceItem[]>([{ description: "", qty: "", price: "" }]);
   const [paymentTerms, setPaymentTerms] = useState<PaymentTerm[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Company settings state
+  const [tempLogoUrl, setTempLogoUrl] = useState<string | null>(null);
+  const [tempSignatureUrl, setTempSignatureUrl] = useState<string | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isUploadingSignature, setIsUploadingSignature] = useState(false);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const signatureInputRef = useRef<HTMLInputElement>(null);
   const invoicePreviewRef = useRef<HTMLDivElement>(null);
+
+  // Initialize temp settings from company settings
+  useEffect(() => {
+    if (companySettings) {
+      setTempLogoUrl(companySettings.logo_url);
+      setTempSignatureUrl(companySettings.signature_url);
+      setLogoPreview(companySettings.logo_url);
+      setSignaturePreview(companySettings.signature_url);
+    }
+  }, [companySettings]);
 
   const filteredInvoices = invoices.filter((invoice) => {
     const matchesSearch =
@@ -197,11 +219,10 @@ export default function Invoice() {
       setFormData(emptyFormData);
       setFormItems([{ description: "", qty: "", price: "" }]);
       setPaymentTerms([]);
-      setLogoPreview(null);
     }
   };
 
-  // Logo upload handler
+  // Logo upload handler for settings
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -213,24 +234,43 @@ export default function Invoice() {
 
     setIsUploadingLogo(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
-      
-      const { data, error } = await supabase.storage
-        .from('company-logos')
-        .upload(fileName, file);
-
-      if (error) throw error;
-
-      const { data: urlData } = supabase.storage
-        .from('company-logos')
-        .getPublicUrl(fileName);
-
-      setFormData(prev => ({ ...prev, company_logo_url: urlData.publicUrl }));
-    } catch (error) {
-      console.error('Error uploading logo:', error);
+      const url = await uploadLogo(file);
+      if (url) {
+        setTempLogoUrl(url);
+      }
     } finally {
       setIsUploadingLogo(false);
+    }
+  };
+
+  // Signature upload handler for settings
+  const handleSignatureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = (e) => setSignaturePreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+
+    setIsUploadingSignature(true);
+    try {
+      const url = await uploadSignature(file);
+      if (url) {
+        setTempSignatureUrl(url);
+      }
+    } finally {
+      setIsUploadingSignature(false);
+    }
+  };
+
+  // Save company settings
+  const handleSaveCompanySettings = async () => {
+    setIsSubmitting(true);
+    const success = await saveSettings(tempLogoUrl, tempSignatureUrl);
+    setIsSubmitting(false);
+    if (success) {
+      setIsSettingsDialogOpen(false);
     }
   };
 
@@ -267,6 +307,41 @@ export default function Invoice() {
   const handleOpenPreview = (invoice: Invoice) => {
     setPreviewInvoice(invoice);
     setIsPreviewDialogOpen(true);
+  };
+
+  // Send Invoice (placeholder - shows toast)
+  const handleSendInvoice = (invoice: Invoice) => {
+    toast({
+      title: "Kirim Invoice",
+      description: `Invoice ${invoice.invoice_number} akan dikirim ke ${invoice.customers?.name}. Fitur ini akan segera tersedia.`,
+    });
+  };
+
+  // Mark as Paid
+  const handleMarkAsPaid = async (invoice: Invoice) => {
+    const allPaidTerms = (invoice.payment_terms || []).map(term => ({
+      ...term,
+      paid: true,
+    }));
+    
+    await updateInvoice(invoice.id, { 
+      status: "paid" as const,
+      payment_terms: allPaidTerms,
+    });
+    
+    toast({
+      title: "Berhasil",
+      description: `Invoice ${invoice.invoice_number} telah ditandai lunas`,
+    });
+  };
+
+  // Delete Invoice
+  const handleDeleteInvoice = async (invoice: Invoice) => {
+    // In a real app, you'd want a confirmation dialog
+    toast({
+      title: "Hapus Invoice",
+      description: `Invoice ${invoice.invoice_number} akan dihapus. Fitur ini akan segera tersedia.`,
+    });
   };
 
   const handlePrintInvoice = () => {
@@ -368,6 +443,13 @@ export default function Invoice() {
               </SelectContent>
             </Select>
           </div>
+          <Button 
+            variant="outline" 
+            onClick={() => setIsSettingsDialogOpen(true)}
+          >
+            <Settings className="mr-2 h-4 w-4" />
+            Pengaturan Invoice
+          </Button>
         </div>
 
         {/* Invoices Table */}
@@ -475,9 +557,21 @@ export default function Invoice() {
                             <DropdownMenuItem onClick={() => handleOpenTerminDialog(invoice)}>
                               Edit Termin
                             </DropdownMenuItem>
-                            <DropdownMenuItem>Kirim ke Pelanggan</DropdownMenuItem>
-                            <DropdownMenuItem>Tandai Lunas</DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">Hapus</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleSendInvoice(invoice)}>
+                              <Send className="mr-2 h-4 w-4" />
+                              Kirim ke Pelanggan
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleMarkAsPaid(invoice)}>
+                              <Check className="mr-2 h-4 w-4" />
+                              Tandai Lunas
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => handleDeleteInvoice(invoice)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Hapus
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
@@ -523,39 +617,37 @@ export default function Invoice() {
                 </div>
               </div>
 
-              {/* Logo Upload Section */}
-              <div className="rounded-lg border border-border p-4">
-                <h4 className="mb-3 font-medium">Logo Perusahaan</h4>
-                <div className="flex items-center gap-4">
-                  <div 
-                    className="w-24 h-24 rounded-lg border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    {logoPreview ? (
-                      <img src={logoPreview} alt="Logo preview" className="w-full h-full object-contain" />
-                    ) : (
-                      <div className="text-center">
-                        {isUploadingLogo ? (
-                          <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-                        ) : (
-                          <>
-                            <ImageIcon className="h-6 w-6 mx-auto text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground mt-1 block">Upload</span>
-                          </>
-                        )}
-                      </div>
-                    )}
+              {/* Company Settings Info */}
+              <div className="rounded-lg border border-border p-4 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-medium">Logo & Tanda Tangan</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {companySettings?.logo_url && companySettings?.signature_url 
+                        ? "Logo dan tanda tangan sudah diatur" 
+                        : "Klik Pengaturan Invoice untuk mengatur logo dan tanda tangan permanen"}
+                    </p>
                   </div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleLogoUpload}
-                  />
-                  <div className="text-sm text-muted-foreground">
-                    <p>Upload logo perusahaan untuk ditampilkan pada invoice.</p>
-                    <p>Format: JPG, PNG (maks. 2MB)</p>
+                  <div className="flex items-center gap-2">
+                    {companySettings?.logo_url && (
+                      <img src={companySettings.logo_url} alt="Logo" className="h-10 w-10 object-contain rounded border" />
+                    )}
+                    {companySettings?.signature_url && (
+                      <img src={companySettings.signature_url} alt="Signature" className="h-10 object-contain rounded border" />
+                    )}
+                    {(!companySettings?.logo_url || !companySettings?.signature_url) && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setIsDialogOpen(false);
+                          setIsSettingsDialogOpen(true);
+                        }}
+                      >
+                        <Settings className="mr-2 h-3 w-3" />
+                        Atur Sekarang
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -685,7 +777,7 @@ export default function Invoice() {
               </Button>
               <Button 
                 onClick={handleSubmit} 
-                disabled={!formData.customer_id || !formData.issue_date || formItems.every(i => !i.description) || isSubmitting || isUploadingLogo}
+                disabled={!formData.customer_id || !formData.issue_date || formItems.every(i => !i.description) || isSubmitting}
               >
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <Plus className="mr-2 h-4 w-4" />
@@ -812,10 +904,15 @@ export default function Invoice() {
                 Invoice {previewInvoice?.invoice_number} - {previewInvoice?.customers?.name}
               </DialogDescription>
             </DialogHeader>
-            <div className="p-6 pt-4">
+            <div className="p-6 pt-4 bg-gray-100">
               {previewInvoice && (
-                <div className="border rounded-lg overflow-hidden shadow-sm">
-                  <InvoicePreview ref={invoicePreviewRef} invoice={previewInvoice} />
+                <div className="border rounded-lg overflow-hidden shadow-lg">
+                  <InvoicePreview 
+                    ref={invoicePreviewRef} 
+                    invoice={previewInvoice} 
+                    logoUrl={companySettings?.logo_url}
+                    signatureUrl={companySettings?.signature_url}
+                  />
                 </div>
               )}
             </div>
@@ -826,6 +923,105 @@ export default function Invoice() {
               <Button onClick={handlePrintInvoice}>
                 <Printer className="mr-2 h-4 w-4" />
                 Print / Download PDF
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Company Settings Dialog */}
+        <Dialog open={isSettingsDialogOpen} onOpenChange={setIsSettingsDialogOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Pengaturan Invoice</DialogTitle>
+              <DialogDescription>
+                Atur logo dan tanda tangan yang akan digunakan pada semua invoice.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-6 py-4">
+              {/* Logo Upload */}
+              <div className="rounded-lg border border-border p-4">
+                <h4 className="mb-3 font-medium">Logo Perusahaan</h4>
+                <div className="flex items-center gap-4">
+                  <div 
+                    className="w-24 h-24 rounded-lg border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden bg-white"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {logoPreview ? (
+                      <img src={logoPreview} alt="Logo preview" className="w-full h-full object-contain" />
+                    ) : (
+                      <div className="text-center">
+                        {isUploadingLogo ? (
+                          <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                        ) : (
+                          <>
+                            <ImageIcon className="h-6 w-6 mx-auto text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground mt-1 block">Upload</span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleLogoUpload}
+                  />
+                  <div className="text-sm text-muted-foreground">
+                    <p>Logo akan tampil di header invoice.</p>
+                    <p>Format: JPG, PNG (maks. 2MB)</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Signature Upload */}
+              <div className="rounded-lg border border-border p-4">
+                <h4 className="mb-3 font-medium">Tanda Tangan Digital</h4>
+                <div className="flex items-center gap-4">
+                  <div 
+                    className="w-32 h-20 rounded-lg border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden bg-white"
+                    onClick={() => signatureInputRef.current?.click()}
+                  >
+                    {signaturePreview ? (
+                      <img src={signaturePreview} alt="Signature preview" className="w-full h-full object-contain" />
+                    ) : (
+                      <div className="text-center">
+                        {isUploadingSignature ? (
+                          <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                        ) : (
+                          <>
+                            <Pencil className="h-5 w-5 mx-auto text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground mt-1 block">Upload TTD</span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    ref={signatureInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleSignatureUpload}
+                  />
+                  <div className="text-sm text-muted-foreground">
+                    <p>Tanda tangan akan tampil di bagian bawah invoice.</p>
+                    <p>Disarankan menggunakan gambar dengan background transparan (PNG).</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsSettingsDialogOpen(false)}>
+                Batal
+              </Button>
+              <Button 
+                onClick={handleSaveCompanySettings} 
+                disabled={isSubmitting || isUploadingLogo || isUploadingSignature}
+              >
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Simpan Pengaturan
               </Button>
             </DialogFooter>
           </DialogContent>
