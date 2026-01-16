@@ -97,6 +97,7 @@ export type Database = {
       invoices: {
         Row: {
           amount: number
+          company_logo_url: string | null
           created_at: string
           customer_id: string
           dp_amount: number | null
@@ -104,6 +105,7 @@ export type Database = {
           due_date: string
           id: string
           invoice_number: string
+          issue_date: string | null
           items: Json | null
           payment_terms: Json | null
           pelunasan_amount: number | null
@@ -112,6 +114,7 @@ export type Database = {
         }
         Insert: {
           amount?: number
+          company_logo_url?: string | null
           created_at?: string
           customer_id: string
           dp_amount?: number | null
@@ -119,6 +122,7 @@ export type Database = {
           due_date: string
           id?: string
           invoice_number: string
+          issue_date?: string | null
           items?: Json | null
           payment_terms?: Json | null
           pelunasan_amount?: number | null
@@ -127,6 +131,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          company_logo_url?: string | null
           created_at?: string
           customer_id?: string
           dp_amount?: number | null
@@ -134,6 +139,7 @@ export type Database = {
           due_date?: string
           id?: string
           invoice_number?: string
+          issue_date?: string | null
           items?: Json | null
           payment_terms?: Json | null
           pelunasan_amount?: number | null
