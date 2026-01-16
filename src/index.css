@@ -156,15 +156,16 @@
 
   /* Sidebar Item Styles */
   .sidebar-item {
-    @apply flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200;
+    @apply flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all duration-200;
+    @apply text-sidebar-foreground/80 border border-transparent;
   }
 
   .sidebar-item:hover {
-    @apply bg-sidebar-accent text-sidebar-accent-foreground;
+    @apply bg-sidebar-accent text-sidebar-foreground border-sidebar-border/50;
   }
 
   .sidebar-item.active {
-    @apply bg-sidebar-primary text-sidebar-primary-foreground;
+    @apply bg-sidebar-primary text-sidebar-primary-foreground font-semibold shadow-md;
   }
 
   /* Table Styles */
