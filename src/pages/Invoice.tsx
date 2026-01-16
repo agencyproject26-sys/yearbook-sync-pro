@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Search, Filter, MoreHorizontal, Download, Eye, Plus, Send, Loader2, Pencil, Trash2 } from "lucide-react";
+import { useState, useRef } from "react";
+import { Search, Filter, MoreHorizontal, Download, Eye, Plus, Send, Loader2, Pencil, Trash2, Upload, ImageIcon } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useInvoices, type InvoiceFormData, type Invoice, type PaymentTerm } from "@/hooks/useInvoices";
 import { useCustomers } from "@/hooks/useCustomers";
+import { supabase } from "@/integrations/supabase/client";
 
 const statusConfig = {
   draft: { label: "Draft", className: "bg-muted text-muted-foreground" },
@@ -62,9 +63,10 @@ interface InvoiceItem {
 
 const emptyFormData: InvoiceFormData = {
   customer_id: "",
-  due_date: "",
+  issue_date: "",
   items: [{ description: "", qty: 0, price: 0 }],
   payment_terms: [],
+  company_logo_url: "",
 };
 
 const emptyPaymentTerm: PaymentTerm = {
@@ -88,6 +90,9 @@ export default function Invoice() {
   const [formItems, setFormItems] = useState<InvoiceItem[]>([{ description: "", qty: "", price: "" }]);
   const [paymentTerms, setPaymentTerms] = useState<PaymentTerm[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredInvoices = invoices.filter((invoice) => {
     const matchesSearch =
@@ -153,20 +158,21 @@ export default function Invoice() {
   };
 
   const handleSubmit = async () => {
-    if (!formData.customer_id || !formData.due_date || formItems.every(i => !i.description)) {
+    if (!formData.customer_id || !formData.issue_date || formItems.every(i => !i.description)) {
       return;
     }
 
     setIsSubmitting(true);
     const invoiceData: InvoiceFormData = {
       customer_id: formData.customer_id,
-      due_date: formData.due_date,
+      issue_date: formData.issue_date,
       items: formItems.map(item => ({
         description: item.description,
         qty: parseFloat(item.qty) || 0,
         price: parseFloat(item.price) || 0,
       })),
       payment_terms: paymentTerms,
+      company_logo_url: formData.company_logo_url,
     };
 
     const success = await addInvoice(invoiceData);
@@ -176,6 +182,7 @@ export default function Invoice() {
       setFormData(emptyFormData);
       setFormItems([{ description: "", qty: "", price: "" }]);
       setPaymentTerms([]);
+      setLogoPreview(null);
       setIsDialogOpen(false);
     }
   };
@@ -186,6 +193,40 @@ export default function Invoice() {
       setFormData(emptyFormData);
       setFormItems([{ description: "", qty: "", price: "" }]);
       setPaymentTerms([]);
+      setLogoPreview(null);
+    }
+  };
+
+  // Logo upload handler
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = (e) => setLogoPreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+
+    setIsUploadingLogo(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      
+      const { data, error } = await supabase.storage
+        .from('company-logos')
+        .upload(fileName, file);
+
+      if (error) throw error;
+
+      const { data: urlData } = supabase.storage
+        .from('company-logos')
+        .getPublicUrl(fileName);
+
+      setFormData(prev => ({ ...prev, company_logo_url: urlData.publicUrl }));
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+    } finally {
+      setIsUploadingLogo(false);
     }
   };
 
@@ -416,12 +457,49 @@ export default function Invoice() {
                   </Select>
                 </div>
                 <div className="grid gap-2">
-                  <Label>Jatuh Tempo *</Label>
+                  <Label>Terbit Invoice *</Label>
                   <Input 
                     type="date" 
-                    value={formData.due_date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
+                    value={formData.issue_date}
+                    onChange={(e) => setFormData(prev => ({ ...prev, issue_date: e.target.value }))}
                   />
+                </div>
+              </div>
+
+              {/* Logo Upload Section */}
+              <div className="rounded-lg border border-border p-4">
+                <h4 className="mb-3 font-medium">Logo Perusahaan</h4>
+                <div className="flex items-center gap-4">
+                  <div 
+                    className="w-24 h-24 rounded-lg border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {logoPreview ? (
+                      <img src={logoPreview} alt="Logo preview" className="w-full h-full object-contain" />
+                    ) : (
+                      <div className="text-center">
+                        {isUploadingLogo ? (
+                          <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                        ) : (
+                          <>
+                            <ImageIcon className="h-6 w-6 mx-auto text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground mt-1 block">Upload</span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleLogoUpload}
+                  />
+                  <div className="text-sm text-muted-foreground">
+                    <p>Upload logo perusahaan untuk ditampilkan pada invoice.</p>
+                    <p>Format: JPG, PNG (maks. 2MB)</p>
+                  </div>
                 </div>
               </div>
 
@@ -550,7 +628,7 @@ export default function Invoice() {
               </Button>
               <Button 
                 onClick={handleSubmit} 
-                disabled={!formData.customer_id || !formData.due_date || formItems.every(i => !i.description) || isSubmitting}
+                disabled={!formData.customer_id || !formData.issue_date || formItems.every(i => !i.description) || isSubmitting || isUploadingLogo}
               >
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <Plus className="mr-2 h-4 w-4" />
