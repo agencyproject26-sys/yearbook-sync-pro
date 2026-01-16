@@ -40,6 +40,17 @@ interface Order {
   hasMOU: boolean;
   hasSpreadsheet: boolean;
   hasDrive: boolean;
+  waDesc?: string;
+  notes?: string;
+}
+
+interface OrderFormData {
+  customerId: string;
+  school: string;
+  customer: string;
+  value: string;
+  waDesc: string;
+  notes: string;
 }
 
 const statusConfig = {
@@ -49,7 +60,13 @@ const statusConfig = {
   selesai: { label: "Selesai", className: "bg-success/15 text-success" },
 };
 
-const mockOrders: Order[] = [
+const mockCustomers = [
+  { id: "sma1", name: "SMA Negeri 1 Jakarta", pic: "Bpk. Ahmad" },
+  { id: "smpazhar", name: "SMP Islam Al-Azhar", pic: "Ibu Sari" },
+  { id: "sdtar", name: "SD Tarakanita", pic: "Bpk. Budi" },
+];
+
+const initialMockOrders: Order[] = [
   {
     id: "ORD-2026-001",
     customer: "Bpk. Ahmad",
@@ -96,6 +113,15 @@ const mockOrders: Order[] = [
   },
 ];
 
+const emptyFormData: OrderFormData = {
+  customerId: "",
+  school: "",
+  customer: "",
+  value: "",
+  waDesc: "",
+  notes: "",
+};
+
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
@@ -105,10 +131,11 @@ const formatCurrency = (value: number) => {
 };
 
 export default function Order() {
-  const [orders] = useState<Order[]>(mockOrders);
+  const [orders, setOrders] = useState<Order[]>(initialMockOrders);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [formData, setFormData] = useState<OrderFormData>(emptyFormData);
 
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
@@ -119,6 +146,50 @@ export default function Order() {
   });
 
   const totalValue = filteredOrders.reduce((sum, order) => sum + order.value, 0);
+
+  const handleCustomerSelect = (customerId: string) => {
+    const customer = mockCustomers.find(c => c.id === customerId);
+    if (customer) {
+      setFormData(prev => ({
+        ...prev,
+        customerId,
+        school: customer.name,
+        customer: customer.pic,
+      }));
+    }
+  };
+
+  const handleSubmit = () => {
+    if (!formData.customerId || !formData.value) {
+      return;
+    }
+
+    const orderNumber = String(orders.length + 1).padStart(3, "0");
+    const newOrder: Order = {
+      id: `ORD-2026-${orderNumber}`,
+      customer: formData.customer,
+      school: formData.school,
+      status: "proses",
+      value: parseFloat(formData.value) || 0,
+      createdAt: new Date().toISOString().split("T")[0],
+      hasMOU: false,
+      hasSpreadsheet: false,
+      hasDrive: false,
+      waDesc: formData.waDesc,
+      notes: formData.notes,
+    };
+
+    setOrders(prev => [newOrder, ...prev]);
+    setFormData(emptyFormData);
+    setIsDialogOpen(false);
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      setFormData(emptyFormData);
+    }
+  };
 
   return (
     <MainLayout>
@@ -263,7 +334,7 @@ export default function Order() {
         </div>
 
         {/* Create Order Dialog */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
               <DialogTitle>Buat Order Baru</DialogTitle>
@@ -272,18 +343,30 @@ export default function Order() {
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="customer">Pilih Pelanggan</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih sekolah" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="sma1">SMA Negeri 1 Jakarta</SelectItem>
-                    <SelectItem value="smpazhar">SMP Islam Al-Azhar</SelectItem>
-                    <SelectItem value="sdtar">SD Tarakanita</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="customer">Pilih Pelanggan *</Label>
+                  <Select value={formData.customerId} onValueChange={handleCustomerSelect}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih sekolah" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {mockCustomers.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="value">Nilai Order (Rp) *</Label>
+                  <Input 
+                    id="value" 
+                    type="number" 
+                    placeholder="45000000" 
+                    value={formData.value}
+                    onChange={(e) => setFormData(prev => ({ ...prev, value: e.target.value }))}
+                  />
+                </div>
               </div>
 
               <div className="rounded-lg border border-border p-4">
@@ -314,6 +397,8 @@ export default function Order() {
                   id="waDesc"
                   placeholder="Masukkan deskripsi untuk grup WhatsApp"
                   rows={3}
+                  value={formData.waDesc}
+                  onChange={(e) => setFormData(prev => ({ ...prev, waDesc: e.target.value }))}
                 />
               </div>
 
@@ -323,14 +408,16 @@ export default function Order() {
                   id="notes"
                   placeholder="Catatan tambahan untuk order ini"
                   rows={3}
+                  value={formData.notes}
+                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                 />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <Button variant="outline" onClick={() => handleDialogClose(false)}>
                 Batal
               </Button>
-              <Button onClick={() => setIsDialogOpen(false)}>
+              <Button onClick={handleSubmit} disabled={!formData.customerId || !formData.value}>
                 <Plus className="mr-2 h-4 w-4" />
                 Buat Order
               </Button>

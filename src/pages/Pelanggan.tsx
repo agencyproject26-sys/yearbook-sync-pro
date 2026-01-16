@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Filter, MoreHorizontal, Phone, MapPin, Building } from "lucide-react";
+import { Plus, Search, Filter, MoreHorizontal, Phone, MapPin, Building, User, X } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -34,11 +34,21 @@ import { cn } from "@/lib/utils";
 interface Customer {
   id: string;
   name: string;
+  picName: string;
   phones: string[];
   city: string;
   address: string;
   status: "prospek" | "aktif" | "selesai";
   createdAt: string;
+}
+
+interface CustomerFormData {
+  name: string;
+  picName: string;
+  phones: string[];
+  city: string;
+  address: string;
+  status: "prospek" | "aktif" | "selesai";
 }
 
 const statusConfig = {
@@ -47,10 +57,11 @@ const statusConfig = {
   selesai: { label: "Selesai", className: "bg-primary/15 text-primary hover:bg-primary/20" },
 };
 
-const mockCustomers: Customer[] = [
+const initialMockCustomers: Customer[] = [
   {
     id: "1",
     name: "SMA Negeri 1 Jakarta",
+    picName: "Bpk. Ahmad",
     phones: ["08123456789", "08198765432"],
     city: "Jakarta Selatan",
     address: "Jl. Sudirman No. 123, Jakarta Selatan",
@@ -60,6 +71,7 @@ const mockCustomers: Customer[] = [
   {
     id: "2",
     name: "SMP Islam Al-Azhar",
+    picName: "Ibu Sari",
     phones: ["08567891234"],
     city: "Jakarta Timur",
     address: "Jl. Pemuda No. 45, Jakarta Timur",
@@ -69,6 +81,7 @@ const mockCustomers: Customer[] = [
   {
     id: "3",
     name: "SD Tarakanita",
+    picName: "Bpk. Budi",
     phones: ["08112233445"],
     city: "Tangerang",
     address: "Jl. BSD Green Office Park, Tangerang",
@@ -78,6 +91,7 @@ const mockCustomers: Customer[] = [
   {
     id: "4",
     name: "SMA Gonzaga",
+    picName: "Ibu Dewi",
     phones: ["08556677889", "02187654321"],
     city: "Jakarta Pusat",
     address: "Jl. Merdeka Barat No. 78, Jakarta Pusat",
@@ -87,6 +101,7 @@ const mockCustomers: Customer[] = [
   {
     id: "5",
     name: "SMK Negeri 4 Bandung",
+    picName: "Bpk. Eko",
     phones: ["08778899001"],
     city: "Bandung",
     address: "Jl. Asia Afrika No. 100, Bandung",
@@ -95,18 +110,74 @@ const mockCustomers: Customer[] = [
   },
 ];
 
+const emptyFormData: CustomerFormData = {
+  name: "",
+  picName: "",
+  phones: [""],
+  city: "",
+  address: "",
+  status: "prospek",
+};
+
 export default function Pelanggan() {
-  const [customers] = useState<Customer[]>(mockCustomers);
+  const [customers, setCustomers] = useState<Customer[]>(initialMockCustomers);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [formData, setFormData] = useState<CustomerFormData>(emptyFormData);
 
   const filteredCustomers = customers.filter((customer) => {
     const matchesSearch = customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      customer.city.toLowerCase().includes(searchQuery.toLowerCase());
+      customer.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      customer.picName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || customer.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const handleAddPhone = () => {
+    setFormData(prev => ({ ...prev, phones: [...prev.phones, ""] }));
+  };
+
+  const handlePhoneChange = (index: number, value: string) => {
+    const newPhones = [...formData.phones];
+    newPhones[index] = value;
+    setFormData(prev => ({ ...prev, phones: newPhones }));
+  };
+
+  const handleRemovePhone = (index: number) => {
+    if (formData.phones.length > 1) {
+      const newPhones = formData.phones.filter((_, i) => i !== index);
+      setFormData(prev => ({ ...prev, phones: newPhones }));
+    }
+  };
+
+  const handleSubmit = () => {
+    if (!formData.name || !formData.picName || !formData.city) {
+      return;
+    }
+
+    const newCustomer: Customer = {
+      id: String(Date.now()),
+      name: formData.name,
+      picName: formData.picName,
+      phones: formData.phones.filter(p => p.trim() !== ""),
+      city: formData.city,
+      address: formData.address,
+      status: formData.status,
+      createdAt: new Date().toISOString().split("T")[0],
+    };
+
+    setCustomers(prev => [newCustomer, ...prev]);
+    setFormData(emptyFormData);
+    setIsDialogOpen(false);
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      setFormData(emptyFormData);
+    }
+  };
 
   return (
     <MainLayout>
@@ -188,6 +259,10 @@ export default function Pelanggan() {
 
                 <div className="space-y-3">
                   <div className="flex items-start gap-2">
+                    <User className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                    <p className="text-sm font-medium text-foreground">{customer.picName}</p>
+                  </div>
+                  <div className="flex items-start gap-2">
                     <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />
                     <div>
                       <p className="text-sm font-medium text-foreground">{customer.city}</p>
@@ -220,7 +295,7 @@ export default function Pelanggan() {
         </div>
 
         {/* Add Customer Dialog */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Tambah Pelanggan Baru</DialogTitle>
@@ -230,28 +305,75 @@ export default function Pelanggan() {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="name">Nama Sekolah</Label>
-                <Input id="name" placeholder="Contoh: SMA Negeri 1 Jakarta" />
+                <Label htmlFor="name">Nama Sekolah *</Label>
+                <Input 
+                  id="name" 
+                  placeholder="Contoh: SMA Negeri 1 Jakarta" 
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="phone">Nomor Telepon PIC</Label>
-                <Input id="phone" placeholder="08xxxxxxxxxx" />
-                <Button variant="ghost" size="sm" className="w-fit">
+                <Label htmlFor="picName">Nama PIC *</Label>
+                <Input 
+                  id="picName" 
+                  placeholder="Contoh: Bpk. Ahmad / Ibu Sari" 
+                  value={formData.picName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, picName: e.target.value }))}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Nomor Telepon PIC</Label>
+                {formData.phones.map((phone, index) => (
+                  <div key={index} className="flex gap-2">
+                    <Input 
+                      placeholder="08xxxxxxxxxx" 
+                      value={phone}
+                      onChange={(e) => handlePhoneChange(index, e.target.value)}
+                    />
+                    {formData.phones.length > 1 && (
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => handleRemovePhone(index)}
+                        className="shrink-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button variant="ghost" size="sm" className="w-fit" onClick={handleAddPhone}>
                   <Plus className="mr-1 h-3 w-3" />
                   Tambah Nomor
                 </Button>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="city">Kota</Label>
-                <Input id="city" placeholder="Contoh: Jakarta Selatan" />
+                <Label htmlFor="city">Kota *</Label>
+                <Input 
+                  id="city" 
+                  placeholder="Contoh: Jakarta Selatan" 
+                  value={formData.city}
+                  onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="address">Alamat Lengkap</Label>
-                <Textarea id="address" placeholder="Masukkan alamat lengkap sekolah" />
+                <Textarea 
+                  id="address" 
+                  placeholder="Masukkan alamat lengkap sekolah" 
+                  value={formData.address}
+                  onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="status">Status</Label>
-                <Select defaultValue="prospek">
+                <Select 
+                  value={formData.status} 
+                  onValueChange={(value: "prospek" | "aktif" | "selesai") => 
+                    setFormData(prev => ({ ...prev, status: value }))
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih status" />
                   </SelectTrigger>
@@ -264,10 +386,11 @@ export default function Pelanggan() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <Button variant="outline" onClick={() => handleDialogClose(false)}>
                 Batal
               </Button>
-              <Button onClick={() => setIsDialogOpen(false)}>
+              <Button onClick={handleSubmit} disabled={!formData.name || !formData.picName || !formData.city}>
+                <Plus className="mr-2 h-4 w-4" />
                 Simpan Pelanggan
               </Button>
             </DialogFooter>

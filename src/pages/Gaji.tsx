@@ -34,6 +34,15 @@ interface Salary {
   orderId?: string;
 }
 
+interface SalaryFormData {
+  category: "photographer" | "design" | "print" | "other" | "";
+  name: string;
+  amount: string;
+  orderId: string;
+  date: string;
+  description: string;
+}
+
 const categoryConfig = {
   photographer: { icon: Camera, label: "Photographer", className: "bg-success/15 text-success" },
   design: { icon: Palette, label: "Design", className: "bg-warning/15 text-warning" },
@@ -41,13 +50,28 @@ const categoryConfig = {
   other: { icon: AlertTriangle, label: "Tak Terduga", className: "bg-destructive/15 text-destructive" },
 };
 
-const mockSalaries: Salary[] = [
+const mockOrders = [
+  { id: "ORD-2026-001", name: "SMA Negeri 1 Jakarta" },
+  { id: "ORD-2026-002", name: "SMP Islam Al-Azhar" },
+  { id: "ORD-2026-003", name: "SD Tarakanita" },
+];
+
+const initialMockSalaries: Salary[] = [
   { id: "1", name: "Rudi Hartono", category: "photographer", amount: 5000000, description: "Pemotretan SMA N 1 Jakarta", date: "2026-01-17", orderId: "ORD-2026-001" },
   { id: "2", name: "Siti Nurhaliza", category: "design", amount: 4000000, description: "Layout Buku Tahunan", date: "2026-01-18", orderId: "ORD-2026-001" },
   { id: "3", name: "CV Prima Print", category: "print", amount: 25000000, description: "Cetak 100 Buku Tahunan", date: "2026-01-20", orderId: "ORD-2026-003" },
   { id: "4", name: "Andi Wijaya", category: "photographer", amount: 3500000, description: "Pemotretan SMP Al-Azhar", date: "2026-01-17", orderId: "ORD-2026-002" },
   { id: "5", name: "Transportasi Darurat", category: "other", amount: 500000, description: "Ongkos kirim ulang", date: "2026-01-15" },
 ];
+
+const emptyFormData: SalaryFormData = {
+  category: "",
+  name: "",
+  amount: "",
+  orderId: "",
+  date: "",
+  description: "",
+};
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("id-ID", {
@@ -58,10 +82,11 @@ const formatCurrency = (value: number) => {
 };
 
 export default function Gaji() {
-  const [salaries] = useState<Salary[]>(mockSalaries);
+  const [salaries, setSalaries] = useState<Salary[]>(initialMockSalaries);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [formData, setFormData] = useState<SalaryFormData>(emptyFormData);
 
   const filteredSalaries = salaries.filter((salary) => {
     const matchesSearch = salary.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -69,6 +94,42 @@ export default function Gaji() {
     const matchesCategory = categoryFilter === "all" || salary.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
+
+  const totalByCategory = {
+    photographer: salaries.filter(s => s.category === "photographer").reduce((sum, s) => sum + s.amount, 0),
+    design: salaries.filter(s => s.category === "design").reduce((sum, s) => sum + s.amount, 0),
+    print: salaries.filter(s => s.category === "print").reduce((sum, s) => sum + s.amount, 0),
+    other: salaries.filter(s => s.category === "other").reduce((sum, s) => sum + s.amount, 0),
+  };
+
+  const totalAll = Object.values(totalByCategory).reduce((sum, val) => sum + val, 0);
+
+  const handleSubmit = () => {
+    if (!formData.category || !formData.name || !formData.amount || !formData.date) {
+      return;
+    }
+
+    const newSalary: Salary = {
+      id: String(Date.now()),
+      name: formData.name,
+      category: formData.category as "photographer" | "design" | "print" | "other",
+      amount: parseFloat(formData.amount) || 0,
+      description: formData.description,
+      date: formData.date,
+      orderId: formData.orderId || undefined,
+    };
+
+    setSalaries(prev => [newSalary, ...prev]);
+    setFormData(emptyFormData);
+    setIsDialogOpen(false);
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      setFormData(emptyFormData);
+    }
+  };
 
   const totalByCategory = {
     photographer: salaries.filter(s => s.category === "photographer").reduce((sum, s) => sum + s.amount, 0),
@@ -193,7 +254,7 @@ export default function Gaji() {
         </div>
 
         {/* Add Salary Dialog */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Catat Gaji / Biaya</DialogTitle>
@@ -203,8 +264,13 @@ export default function Gaji() {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label>Kategori</Label>
-                <Select>
+                <Label>Kategori *</Label>
+                <Select 
+                  value={formData.category} 
+                  onValueChange={(value: "photographer" | "design" | "print" | "other") => 
+                    setFormData(prev => ({ ...prev, category: value }))
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih kategori" />
                   </SelectTrigger>
@@ -217,39 +283,63 @@ export default function Gaji() {
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label>Nama Penerima</Label>
-                <Input placeholder="Nama orang / vendor" />
+                <Label>Nama Penerima *</Label>
+                <Input 
+                  placeholder="Nama orang / vendor" 
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                />
               </div>
               <div className="grid gap-2">
-                <Label>Jumlah</Label>
-                <Input type="number" placeholder="5000000" />
+                <Label>Jumlah *</Label>
+                <Input 
+                  type="number" 
+                  placeholder="5000000" 
+                  value={formData.amount}
+                  onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                />
               </div>
               <div className="grid gap-2">
                 <Label>Order (Opsional)</Label>
-                <Select>
+                <Select 
+                  value={formData.orderId} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, orderId: value }))}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih order terkait" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ord1">ORD-2026-001 - SMA Negeri 1 Jakarta</SelectItem>
-                    <SelectItem value="ord2">ORD-2026-002 - SMP Islam Al-Azhar</SelectItem>
+                    {mockOrders.map(ord => (
+                      <SelectItem key={ord.id} value={ord.id}>{ord.id} - {ord.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label>Tanggal</Label>
-                <Input type="date" />
+                <Label>Tanggal *</Label>
+                <Input 
+                  type="date" 
+                  value={formData.date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                />
               </div>
               <div className="grid gap-2">
                 <Label>Keterangan</Label>
-                <Textarea placeholder="Deskripsi pembayaran" />
+                <Textarea 
+                  placeholder="Deskripsi pembayaran" 
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <Button variant="outline" onClick={() => handleDialogClose(false)}>
                 Batal
               </Button>
-              <Button onClick={() => setIsDialogOpen(false)}>
+              <Button 
+                onClick={handleSubmit} 
+                disabled={!formData.category || !formData.name || !formData.amount || !formData.date}
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Simpan
               </Button>
