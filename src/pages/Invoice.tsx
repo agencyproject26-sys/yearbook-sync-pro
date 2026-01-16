@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Search, Filter, MoreHorizontal, Download, Eye, Plus, Send, Loader2, Pencil, Trash2, Upload, ImageIcon } from "lucide-react";
+import { Search, Filter, MoreHorizontal, Download, Eye, Plus, Send, Loader2, Pencil, Trash2, Upload, ImageIcon, Printer } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils";
 import { useInvoices, type InvoiceFormData, type Invoice, type PaymentTerm } from "@/hooks/useInvoices";
 import { useCustomers } from "@/hooks/useCustomers";
 import { supabase } from "@/integrations/supabase/client";
+import { InvoicePreview } from "@/components/invoice/InvoicePreview";
 
 const statusConfig = {
   draft: { label: "Draft", className: "bg-muted text-muted-foreground" },
@@ -85,6 +86,8 @@ export default function Invoice() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isTerminDialogOpen, setIsTerminDialogOpen] = useState(false);
+  const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
+  const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [formData, setFormData] = useState<InvoiceFormData>(emptyFormData);
   const [formItems, setFormItems] = useState<InvoiceItem[]>([{ description: "", qty: "", price: "" }]);
@@ -93,6 +96,7 @@ export default function Invoice() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const invoicePreviewRef = useRef<HTMLDivElement>(null);
 
   const filteredInvoices = invoices.filter((invoice) => {
     const matchesSearch =
@@ -259,6 +263,44 @@ export default function Invoice() {
     return Number(invoice.amount) - getPaidAmount(invoice);
   };
 
+  // Preview Invoice
+  const handleOpenPreview = (invoice: Invoice) => {
+    setPreviewInvoice(invoice);
+    setIsPreviewDialogOpen(true);
+  };
+
+  const handlePrintInvoice = () => {
+    if (invoicePreviewRef.current) {
+      const printWindow = window.open("", "_blank");
+      if (printWindow) {
+        printWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Invoice - ${previewInvoice?.invoice_number}</title>
+              <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body { font-family: Arial, sans-serif; }
+                @media print {
+                  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                }
+              </style>
+            </head>
+            <body>
+              ${invoicePreviewRef.current.outerHTML}
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+        }, 250);
+      }
+    }
+  };
+
   if (loading) {
     return (
       <MainLayout>
@@ -404,10 +446,20 @@ export default function Invoice() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="icon">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => handleOpenPreview(invoice)}
+                          title="Lihat Invoice"
+                        >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => handleOpenPreview(invoice)}
+                          title="Download / Print"
+                        >
                           <Download className="h-4 w-4" />
                         </Button>
                         <DropdownMenu>
@@ -417,7 +469,12 @@ export default function Invoice() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>Lihat Detail</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleOpenPreview(invoice)}>
+                              Lihat Invoice
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleOpenTerminDialog(invoice)}>
+                              Edit Termin
+                            </DropdownMenuItem>
                             <DropdownMenuItem>Kirim ke Pelanggan</DropdownMenuItem>
                             <DropdownMenuItem>Tandai Lunas</DropdownMenuItem>
                             <DropdownMenuItem className="text-destructive">Hapus</DropdownMenuItem>
@@ -741,6 +798,34 @@ export default function Invoice() {
               <Button onClick={handleSaveTerms} disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Simpan Perubahan
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Invoice Preview Dialog */}
+        <Dialog open={isPreviewDialogOpen} onOpenChange={(open) => { setIsPreviewDialogOpen(open); if (!open) setPreviewInvoice(null); }}>
+          <DialogContent className="max-w-[900px] max-h-[95vh] overflow-y-auto p-0">
+            <DialogHeader className="p-6 pb-0">
+              <DialogTitle>Preview Invoice</DialogTitle>
+              <DialogDescription>
+                Invoice {previewInvoice?.invoice_number} - {previewInvoice?.customers?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="p-6 pt-4">
+              {previewInvoice && (
+                <div className="border rounded-lg overflow-hidden shadow-sm">
+                  <InvoicePreview ref={invoicePreviewRef} invoice={previewInvoice} />
+                </div>
+              )}
+            </div>
+            <DialogFooter className="p-6 pt-0">
+              <Button variant="outline" onClick={() => setIsPreviewDialogOpen(false)}>
+                Tutup
+              </Button>
+              <Button onClick={handlePrintInvoice}>
+                <Printer className="mr-2 h-4 w-4" />
+                Print / Download PDF
               </Button>
             </DialogFooter>
           </DialogContent>
