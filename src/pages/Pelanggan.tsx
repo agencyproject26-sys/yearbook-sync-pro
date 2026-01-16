@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Filter, MoreHorizontal, Phone, MapPin, Building, User, X, Loader2, FileText, ExternalLink } from "lucide-react";
+import { Plus, Search, Filter, MoreHorizontal, Phone, MapPin, Building, User, X, Loader2, FileText, ExternalLink, Pencil } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -55,13 +55,19 @@ const emptyOrderFormData: OrderFormData = {
 };
 
 export default function Pelanggan() {
-  const { customers, loading, addCustomer, deleteCustomer } = useCustomers();
+  const { customers, loading, addCustomer, deleteCustomer, updateCustomer } = useCustomers();
   const { addOrder } = useOrders();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState<CustomerFormData>(emptyFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Edit dialog state
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState<CustomerFormData>(emptyFormData);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [isEditSubmitting, setIsEditSubmitting] = useState(false);
   
   // Order dialog state
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
@@ -113,6 +119,59 @@ export default function Pelanggan() {
   const handleDialogClose = (open: boolean) => {
     setIsDialogOpen(open);
     if (!open) setFormData(emptyFormData);
+  };
+
+  // Handle Edit customer
+  const handleEditCustomer = (customer: Customer) => {
+    setEditingCustomer(customer);
+    setEditFormData({
+      name: customer.name,
+      pic_name: customer.pic_name,
+      phones: customer.phones?.length ? customer.phones : [""],
+      city: customer.city,
+      address: customer.address || "",
+      status: customer.status,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditPhoneChange = (index: number, value: string) => {
+    const newPhones = [...editFormData.phones];
+    newPhones[index] = value;
+    setEditFormData(prev => ({ ...prev, phones: newPhones }));
+  };
+
+  const handleEditAddPhone = () => {
+    setEditFormData(prev => ({ ...prev, phones: [...prev.phones, ""] }));
+  };
+
+  const handleEditRemovePhone = (index: number) => {
+    if (editFormData.phones.length > 1) {
+      const newPhones = editFormData.phones.filter((_, i) => i !== index);
+      setEditFormData(prev => ({ ...prev, phones: newPhones }));
+    }
+  };
+
+  const handleEditSubmit = async () => {
+    if (!editingCustomer || !editFormData.name || !editFormData.pic_name || !editFormData.city) return;
+    
+    setIsEditSubmitting(true);
+    const success = await updateCustomer(editingCustomer.id, editFormData);
+    setIsEditSubmitting(false);
+    
+    if (success) {
+      setEditFormData(emptyFormData);
+      setEditingCustomer(null);
+      setIsEditDialogOpen(false);
+    }
+  };
+
+  const handleEditDialogClose = (open: boolean) => {
+    setIsEditDialogOpen(open);
+    if (!open) {
+      setEditFormData(emptyFormData);
+      setEditingCustomer(null);
+    }
   };
 
   // Handle Order creation
@@ -241,7 +300,10 @@ export default function Pelanggan() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem>Lihat Detail</DropdownMenuItem>
-                      <DropdownMenuItem>Edit</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEditCustomer(customer)}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleCreateSph(customer)}>
                         <FileText className="mr-2 h-4 w-4" />
                         Buat SPH
@@ -418,6 +480,113 @@ export default function Pelanggan() {
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <Plus className="mr-2 h-4 w-4" />
                 Simpan Pelanggan
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Customer Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={handleEditDialogClose}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Edit Pelanggan</DialogTitle>
+              <DialogDescription>
+                Ubah informasi pelanggan {editingCustomer?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="editName">Nama Sekolah *</Label>
+                <Input 
+                  id="editName" 
+                  placeholder="Contoh: SMA Negeri 1 Jakarta" 
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, name: e.target.value }))}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="editPicName">Nama PIC *</Label>
+                <Input 
+                  id="editPicName" 
+                  placeholder="Contoh: Bpk. Ahmad / Ibu Sari" 
+                  value={editFormData.pic_name}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, pic_name: e.target.value }))}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Nomor Telepon PIC</Label>
+                {editFormData.phones.map((phone, index) => (
+                  <div key={index} className="flex gap-2">
+                    <Input 
+                      placeholder="08xxxxxxxxxx" 
+                      value={phone}
+                      onChange={(e) => handleEditPhoneChange(index, e.target.value)}
+                    />
+                    {editFormData.phones.length > 1 && (
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => handleEditRemovePhone(index)}
+                        className="shrink-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button variant="ghost" size="sm" className="w-fit" onClick={handleEditAddPhone}>
+                  <Plus className="mr-1 h-3 w-3" />
+                  Tambah Nomor
+                </Button>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="editCity">Kota *</Label>
+                <Input 
+                  id="editCity" 
+                  placeholder="Contoh: Jakarta Selatan" 
+                  value={editFormData.city}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, city: e.target.value }))}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="editAddress">Alamat Lengkap</Label>
+                <Textarea 
+                  id="editAddress" 
+                  placeholder="Masukkan alamat lengkap sekolah" 
+                  value={editFormData.address}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, address: e.target.value }))}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="editStatus">Status</Label>
+                <Select 
+                  value={editFormData.status} 
+                  onValueChange={(value: "prospek" | "aktif" | "selesai") => 
+                    setEditFormData(prev => ({ ...prev, status: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="prospek">Prospek</SelectItem>
+                    <SelectItem value="aktif">Aktif</SelectItem>
+                    <SelectItem value="selesai">Selesai</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => handleEditDialogClose(false)}>
+                Batal
+              </Button>
+              <Button 
+                onClick={handleEditSubmit} 
+                disabled={!editFormData.name || !editFormData.pic_name || !editFormData.city || isEditSubmitting}
+              >
+                {isEditSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Pencil className="mr-2 h-4 w-4" />
+                Simpan Perubahan
               </Button>
             </DialogFooter>
           </DialogContent>
