@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Plus, Camera, Palette, Printer, AlertTriangle, User } from "lucide-react";
+import { Search, Plus, Camera, Palette, Printer, AlertTriangle, User, Loader2 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -23,54 +23,14 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-
-interface Salary {
-  id: string;
-  name: string;
-  category: "photographer" | "design" | "print" | "other";
-  amount: number;
-  description: string;
-  date: string;
-  orderId?: string;
-}
-
-interface SalaryFormData {
-  category: "photographer" | "design" | "print" | "other" | "";
-  name: string;
-  amount: string;
-  orderId: string;
-  date: string;
-  description: string;
-}
+import { useSalaries, SalaryFormData } from "@/hooks/useSalaries";
+import { useOrders } from "@/hooks/useOrders";
 
 const categoryConfig = {
   photographer: { icon: Camera, label: "Photographer", className: "bg-success/15 text-success" },
   design: { icon: Palette, label: "Design", className: "bg-warning/15 text-warning" },
   print: { icon: Printer, label: "Percetakan", className: "bg-info/15 text-info" },
   other: { icon: AlertTriangle, label: "Tak Terduga", className: "bg-destructive/15 text-destructive" },
-};
-
-const mockOrders = [
-  { id: "ORD-2026-001", name: "SMA Negeri 1 Jakarta" },
-  { id: "ORD-2026-002", name: "SMP Islam Al-Azhar" },
-  { id: "ORD-2026-003", name: "SD Tarakanita" },
-];
-
-const initialMockSalaries: Salary[] = [
-  { id: "1", name: "Rudi Hartono", category: "photographer", amount: 5000000, description: "Pemotretan SMA N 1 Jakarta", date: "2026-01-17", orderId: "ORD-2026-001" },
-  { id: "2", name: "Siti Nurhaliza", category: "design", amount: 4000000, description: "Layout Buku Tahunan", date: "2026-01-18", orderId: "ORD-2026-001" },
-  { id: "3", name: "CV Prima Print", category: "print", amount: 25000000, description: "Cetak 100 Buku Tahunan", date: "2026-01-20", orderId: "ORD-2026-003" },
-  { id: "4", name: "Andi Wijaya", category: "photographer", amount: 3500000, description: "Pemotretan SMP Al-Azhar", date: "2026-01-17", orderId: "ORD-2026-002" },
-  { id: "5", name: "Transportasi Darurat", category: "other", amount: 500000, description: "Ongkos kirim ulang", date: "2026-01-15" },
-];
-
-const emptyFormData: SalaryFormData = {
-  category: "",
-  name: "",
-  amount: "",
-  orderId: "",
-  date: "",
-  description: "",
 };
 
 const formatCurrency = (value: number) => {
@@ -81,55 +41,67 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
+const emptyFormData: SalaryFormData = {
+  category: "photographer",
+  name: "",
+  amount: 0,
+  order_id: "",
+  payment_date: "",
+  description: "",
+};
+
 export default function Gaji() {
-  const [salaries, setSalaries] = useState<Salary[]>(initialMockSalaries);
+  const { salaries, loading, addSalary } = useSalaries();
+  const { orders } = useOrders();
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState<SalaryFormData>(emptyFormData);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const filteredSalaries = salaries.filter((salary) => {
     const matchesSearch = salary.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      salary.description.toLowerCase().includes(searchQuery.toLowerCase());
+      (salary.description || "").toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = categoryFilter === "all" || salary.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
 
   const totalByCategory = {
-    photographer: salaries.filter(s => s.category === "photographer").reduce((sum, s) => sum + s.amount, 0),
-    design: salaries.filter(s => s.category === "design").reduce((sum, s) => sum + s.amount, 0),
-    print: salaries.filter(s => s.category === "print").reduce((sum, s) => sum + s.amount, 0),
-    other: salaries.filter(s => s.category === "other").reduce((sum, s) => sum + s.amount, 0),
+    photographer: salaries.filter(s => s.category === "photographer").reduce((sum, s) => sum + Number(s.amount), 0),
+    design: salaries.filter(s => s.category === "design").reduce((sum, s) => sum + Number(s.amount), 0),
+    print: salaries.filter(s => s.category === "print").reduce((sum, s) => sum + Number(s.amount), 0),
+    other: salaries.filter(s => s.category === "other").reduce((sum, s) => sum + Number(s.amount), 0),
   };
 
   const totalAll = Object.values(totalByCategory).reduce((sum, val) => sum + val, 0);
 
-  const handleSubmit = () => {
-    if (!formData.category || !formData.name || !formData.amount || !formData.date) {
-      return;
+  const handleSubmit = async () => {
+    if (!formData.category || !formData.name || !formData.amount || !formData.payment_date) return;
+    
+    setIsSubmitting(true);
+    const success = await addSalary(formData);
+    setIsSubmitting(false);
+    
+    if (success) {
+      setFormData(emptyFormData);
+      setIsDialogOpen(false);
     }
-
-    const newSalary: Salary = {
-      id: String(Date.now()),
-      name: formData.name,
-      category: formData.category as "photographer" | "design" | "print" | "other",
-      amount: parseFloat(formData.amount) || 0,
-      description: formData.description,
-      date: formData.date,
-      orderId: formData.orderId || undefined,
-    };
-
-    setSalaries(prev => [newSalary, ...prev]);
-    setFormData(emptyFormData);
-    setIsDialogOpen(false);
   };
 
   const handleDialogClose = (open: boolean) => {
     setIsDialogOpen(open);
-    if (!open) {
-      setFormData(emptyFormData);
-    }
+    if (!open) setFormData(emptyFormData);
   };
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="flex h-full items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
@@ -227,16 +199,16 @@ export default function Gaji() {
                         {config.label}
                       </Badge>
                     </td>
-                    <td className="font-semibold">{formatCurrency(salary.amount)}</td>
+                    <td className="font-semibold">{formatCurrency(Number(salary.amount))}</td>
                     <td className="text-muted-foreground">{salary.description}</td>
                     <td>
-                      {salary.orderId ? (
-                        <Badge variant="outline">{salary.orderId}</Badge>
+                      {salary.orders?.order_number ? (
+                        <Badge variant="outline">{salary.orders.order_number}</Badge>
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
                     </td>
-                    <td className="text-muted-foreground">{salary.date}</td>
+                    <td className="text-muted-foreground">{salary.payment_date}</td>
                   </tr>
                 );
               })}
@@ -286,22 +258,22 @@ export default function Gaji() {
                 <Input 
                   type="number" 
                   placeholder="5000000" 
-                  value={formData.amount}
-                  onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                  value={formData.amount || ""}
+                  onChange={(e) => setFormData(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
                 />
               </div>
               <div className="grid gap-2">
                 <Label>Order (Opsional)</Label>
                 <Select 
-                  value={formData.orderId} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, orderId: value }))}
+                  value={formData.order_id} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, order_id: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih order terkait" />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockOrders.map(ord => (
-                      <SelectItem key={ord.id} value={ord.id}>{ord.id} - {ord.name}</SelectItem>
+                    {orders.map(ord => (
+                      <SelectItem key={ord.id} value={ord.id}>{ord.order_number} - {ord.customers?.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -310,8 +282,8 @@ export default function Gaji() {
                 <Label>Tanggal *</Label>
                 <Input 
                   type="date" 
-                  value={formData.date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                  value={formData.payment_date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, payment_date: e.target.value }))}
                 />
               </div>
               <div className="grid gap-2">
@@ -329,8 +301,9 @@ export default function Gaji() {
               </Button>
               <Button 
                 onClick={handleSubmit} 
-                disabled={!formData.category || !formData.name || !formData.amount || !formData.date}
+                disabled={!formData.category || !formData.name || !formData.amount || !formData.payment_date || isSubmitting}
               >
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <Plus className="mr-2 h-4 w-4" />
                 Simpan
               </Button>

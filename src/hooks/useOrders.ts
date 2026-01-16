@@ -1,0 +1,98 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+export interface Order {
+  id: string;
+  order_number: string;
+  customer_id: string;
+  status: "proses" | "desain" | "cetak" | "selesai";
+  value: number;
+  has_mou: boolean;
+  has_spreadsheet: boolean;
+  has_drive: boolean;
+  wa_desc: string | null;
+  notes: string | null;
+  created_at: string;
+  customers?: {
+    name: string;
+    pic_name: string;
+  };
+}
+
+export interface OrderFormData {
+  customer_id: string;
+  value: number;
+  wa_desc: string;
+  notes: string;
+}
+
+export const useOrders = () => {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  const generateOrderNumber = () => {
+    const year = new Date().getFullYear();
+    const random = String(Math.floor(Math.random() * 1000)).padStart(3, "0");
+    return `ORD-${year}-${random}`;
+  };
+
+  const fetchOrders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("orders")
+        .select(`*, customers(name, pic_name)`)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setOrders(data as Order[]);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Gagal memuat data order",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addOrder = async (formData: OrderFormData) => {
+    try {
+      const { data, error } = await supabase
+        .from("orders")
+        .insert({
+          order_number: generateOrderNumber(),
+          customer_id: formData.customer_id,
+          value: formData.value,
+          wa_desc: formData.wa_desc || null,
+          notes: formData.notes || null,
+          status: "proses",
+        })
+        .select(`*, customers(name, pic_name)`)
+        .single();
+
+      if (error) throw error;
+      setOrders(prev => [data as Order, ...prev]);
+      toast({
+        title: "Berhasil",
+        description: "Order baru berhasil dibuat",
+      });
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Gagal membuat order",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  return { orders, loading, addOrder, refetch: fetchOrders };
+};

@@ -14,7 +14,268 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      calendar_events: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          date: string
+          id: string
+          notes: string | null
+          time: string
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          date: string
+          id?: string
+          notes?: string | null
+          time: string
+          title: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          date?: string
+          id?: string
+          notes?: string | null
+          time?: string
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          address: string | null
+          city: string
+          created_at: string
+          id: string
+          name: string
+          phones: string[] | null
+          pic_name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          city: string
+          created_at?: string
+          id?: string
+          name: string
+          phones?: string[] | null
+          pic_name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          city?: string
+          created_at?: string
+          id?: string
+          name?: string
+          phones?: string[] | null
+          pic_name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      invoices: {
+        Row: {
+          amount: number
+          created_at: string
+          customer_id: string
+          dp_amount: number | null
+          dp_date: string | null
+          due_date: string
+          id: string
+          invoice_number: string
+          items: Json | null
+          pelunasan_amount: number | null
+          pelunasan_date: string | null
+          status: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          customer_id: string
+          dp_amount?: number | null
+          dp_date?: string | null
+          due_date: string
+          id?: string
+          invoice_number: string
+          items?: Json | null
+          pelunasan_amount?: number | null
+          pelunasan_date?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          customer_id?: string
+          dp_amount?: number | null
+          dp_date?: string | null
+          due_date?: string
+          id?: string
+          invoice_number?: string
+          items?: Json | null
+          pelunasan_amount?: number | null
+          pelunasan_date?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string
+          customer_id: string
+          has_drive: boolean | null
+          has_mou: boolean | null
+          has_spreadsheet: boolean | null
+          id: string
+          notes: string | null
+          order_number: string
+          status: string
+          updated_at: string
+          value: number
+          wa_desc: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          has_drive?: boolean | null
+          has_mou?: boolean | null
+          has_spreadsheet?: boolean | null
+          id?: string
+          notes?: string | null
+          order_number: string
+          status?: string
+          updated_at?: string
+          value?: number
+          wa_desc?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          has_drive?: boolean | null
+          has_mou?: boolean | null
+          has_spreadsheet?: boolean | null
+          id?: string
+          notes?: string | null
+          order_number?: string
+          status?: string
+          updated_at?: string
+          value?: number
+          wa_desc?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          invoice_id: string
+          payment_date: string
+          receipt_number: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          invoice_id: string
+          payment_date: string
+          receipt_number: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          invoice_id?: string
+          payment_date?: string
+          receipt_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salaries: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          order_id: string | null
+          payment_date: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          order_id?: string | null
+          payment_date: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          order_id?: string | null
+          payment_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salaries_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Filter, MoreHorizontal, FileText, Link, FolderOpen, Mail, Plus } from "lucide-react";
+import { Search, Filter, MoreHorizontal, FileText, Link, FolderOpen, Mail, Plus, Loader2 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -29,97 +29,14 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-
-interface Order {
-  id: string;
-  customer: string;
-  school: string;
-  status: "proses" | "desain" | "cetak" | "selesai";
-  value: number;
-  createdAt: string;
-  hasMOU: boolean;
-  hasSpreadsheet: boolean;
-  hasDrive: boolean;
-  waDesc?: string;
-  notes?: string;
-}
-
-interface OrderFormData {
-  customerId: string;
-  school: string;
-  customer: string;
-  value: string;
-  waDesc: string;
-  notes: string;
-}
+import { useOrders, OrderFormData } from "@/hooks/useOrders";
+import { useCustomers } from "@/hooks/useCustomers";
 
 const statusConfig = {
   proses: { label: "Proses", className: "bg-info/15 text-info" },
   desain: { label: "Desain", className: "bg-warning/15 text-warning" },
   cetak: { label: "Cetak", className: "bg-accent/15 text-accent" },
   selesai: { label: "Selesai", className: "bg-success/15 text-success" },
-};
-
-const mockCustomers = [
-  { id: "sma1", name: "SMA Negeri 1 Jakarta", pic: "Bpk. Ahmad" },
-  { id: "smpazhar", name: "SMP Islam Al-Azhar", pic: "Ibu Sari" },
-  { id: "sdtar", name: "SD Tarakanita", pic: "Bpk. Budi" },
-];
-
-const initialMockOrders: Order[] = [
-  {
-    id: "ORD-2026-001",
-    customer: "Bpk. Ahmad",
-    school: "SMA Negeri 1 Jakarta",
-    status: "desain",
-    value: 45000000,
-    createdAt: "2026-01-15",
-    hasMOU: true,
-    hasSpreadsheet: true,
-    hasDrive: true,
-  },
-  {
-    id: "ORD-2026-002",
-    customer: "Ibu Sari",
-    school: "SMP Islam Al-Azhar",
-    status: "proses",
-    value: 32000000,
-    createdAt: "2026-01-14",
-    hasMOU: true,
-    hasSpreadsheet: false,
-    hasDrive: false,
-  },
-  {
-    id: "ORD-2026-003",
-    customer: "Bpk. Budi",
-    school: "SD Tarakanita",
-    status: "cetak",
-    value: 28000000,
-    createdAt: "2026-01-12",
-    hasMOU: true,
-    hasSpreadsheet: true,
-    hasDrive: true,
-  },
-  {
-    id: "ORD-2025-048",
-    customer: "Ibu Dewi",
-    school: "SMA Gonzaga",
-    status: "selesai",
-    value: 52000000,
-    createdAt: "2025-12-10",
-    hasMOU: true,
-    hasSpreadsheet: true,
-    hasDrive: true,
-  },
-];
-
-const emptyFormData: OrderFormData = {
-  customerId: "",
-  school: "",
-  customer: "",
-  value: "",
-  waDesc: "",
-  notes: "",
 };
 
 const formatCurrency = (value: number) => {
@@ -130,66 +47,59 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
+const emptyFormData: OrderFormData = {
+  customer_id: "",
+  value: 0,
+  wa_desc: "",
+  notes: "",
+};
+
 export default function Order() {
-  const [orders, setOrders] = useState<Order[]>(initialMockOrders);
+  const { orders, loading, addOrder } = useOrders();
+  const { customers } = useCustomers();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState<OrderFormData>(emptyFormData);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
-      order.school.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.id.toLowerCase().includes(searchQuery.toLowerCase());
+      order.customers?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.order_number.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const totalValue = filteredOrders.reduce((sum, order) => sum + order.value, 0);
+  const totalValue = filteredOrders.reduce((sum, order) => sum + Number(order.value), 0);
 
-  const handleCustomerSelect = (customerId: string) => {
-    const customer = mockCustomers.find(c => c.id === customerId);
-    if (customer) {
-      setFormData(prev => ({
-        ...prev,
-        customerId,
-        school: customer.name,
-        customer: customer.pic,
-      }));
+  const handleSubmit = async () => {
+    if (!formData.customer_id || !formData.value) return;
+    
+    setIsSubmitting(true);
+    const success = await addOrder(formData);
+    setIsSubmitting(false);
+    
+    if (success) {
+      setFormData(emptyFormData);
+      setIsDialogOpen(false);
     }
-  };
-
-  const handleSubmit = () => {
-    if (!formData.customerId || !formData.value) {
-      return;
-    }
-
-    const orderNumber = String(orders.length + 1).padStart(3, "0");
-    const newOrder: Order = {
-      id: `ORD-2026-${orderNumber}`,
-      customer: formData.customer,
-      school: formData.school,
-      status: "proses",
-      value: parseFloat(formData.value) || 0,
-      createdAt: new Date().toISOString().split("T")[0],
-      hasMOU: false,
-      hasSpreadsheet: false,
-      hasDrive: false,
-      waDesc: formData.waDesc,
-      notes: formData.notes,
-    };
-
-    setOrders(prev => [newOrder, ...prev]);
-    setFormData(emptyFormData);
-    setIsDialogOpen(false);
   };
 
   const handleDialogClose = (open: boolean) => {
     setIsDialogOpen(open);
-    if (!open) {
-      setFormData(emptyFormData);
-    }
+    if (!open) setFormData(emptyFormData);
   };
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="flex h-full items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
@@ -270,23 +180,23 @@ export default function Order() {
                 const status = statusConfig[order.status];
                 return (
                   <tr key={order.id}>
-                    <td className="font-medium">{order.id}</td>
+                    <td className="font-medium">{order.order_number}</td>
                     <td>
                       <div>
-                        <p className="font-medium">{order.school}</p>
+                        <p className="font-medium">{order.customers?.name}</p>
                       </div>
                     </td>
-                    <td className="text-muted-foreground">{order.customer}</td>
+                    <td className="text-muted-foreground">{order.customers?.pic_name}</td>
                     <td>
                       <Badge className={status.className}>{status.label}</Badge>
                     </td>
-                    <td className="font-semibold">{formatCurrency(order.value)}</td>
+                    <td className="font-semibold">{formatCurrency(Number(order.value))}</td>
                     <td>
                       <div className="flex gap-1">
                         <Button
                           variant="ghost"
                           size="icon"
-                          className={cn("h-8 w-8", order.hasMOU ? "text-success" : "text-muted-foreground")}
+                          className={cn("h-8 w-8", order.has_mou ? "text-success" : "text-muted-foreground")}
                           title="MOU"
                         >
                           <FileText className="h-4 w-4" />
@@ -294,7 +204,7 @@ export default function Order() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className={cn("h-8 w-8", order.hasSpreadsheet ? "text-success" : "text-muted-foreground")}
+                          className={cn("h-8 w-8", order.has_spreadsheet ? "text-success" : "text-muted-foreground")}
                           title="Spreadsheet"
                         >
                           <Link className="h-4 w-4" />
@@ -302,14 +212,14 @@ export default function Order() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className={cn("h-8 w-8", order.hasDrive ? "text-success" : "text-muted-foreground")}
+                          className={cn("h-8 w-8", order.has_drive ? "text-success" : "text-muted-foreground")}
                           title="Google Drive"
                         >
                           <FolderOpen className="h-4 w-4" />
                         </Button>
                       </div>
                     </td>
-                    <td className="text-muted-foreground">{order.createdAt}</td>
+                    <td className="text-muted-foreground">{new Date(order.created_at).toLocaleDateString("id-ID")}</td>
                     <td>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -346,12 +256,12 @@ export default function Order() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="customer">Pilih Pelanggan *</Label>
-                  <Select value={formData.customerId} onValueChange={handleCustomerSelect}>
+                  <Select value={formData.customer_id} onValueChange={(value) => setFormData(prev => ({ ...prev, customer_id: value }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih sekolah" />
                     </SelectTrigger>
                     <SelectContent>
-                      {mockCustomers.map(c => (
+                      {customers.map(c => (
                         <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                       ))}
                     </SelectContent>
@@ -363,8 +273,8 @@ export default function Order() {
                     id="value" 
                     type="number" 
                     placeholder="45000000" 
-                    value={formData.value}
-                    onChange={(e) => setFormData(prev => ({ ...prev, value: e.target.value }))}
+                    value={formData.value || ""}
+                    onChange={(e) => setFormData(prev => ({ ...prev, value: parseFloat(e.target.value) || 0 }))}
                   />
                 </div>
               </div>
@@ -397,8 +307,8 @@ export default function Order() {
                   id="waDesc"
                   placeholder="Masukkan deskripsi untuk grup WhatsApp"
                   rows={3}
-                  value={formData.waDesc}
-                  onChange={(e) => setFormData(prev => ({ ...prev, waDesc: e.target.value }))}
+                  value={formData.wa_desc}
+                  onChange={(e) => setFormData(prev => ({ ...prev, wa_desc: e.target.value }))}
                 />
               </div>
 
@@ -417,7 +327,8 @@ export default function Order() {
               <Button variant="outline" onClick={() => handleDialogClose(false)}>
                 Batal
               </Button>
-              <Button onClick={handleSubmit} disabled={!formData.customerId || !formData.value}>
+              <Button onClick={handleSubmit} disabled={!formData.customer_id || !formData.value || isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <Plus className="mr-2 h-4 w-4" />
                 Buat Order
               </Button>
