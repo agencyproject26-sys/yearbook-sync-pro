@@ -37,6 +37,16 @@ interface CalendarEvent {
   date: string;
   time: string;
   type: "meeting" | "photo" | "design" | "print";
+  notes?: string;
+}
+
+interface EventFormData {
+  title: string;
+  type: "meeting" | "photo" | "design" | "print" | "";
+  date: string;
+  time: string;
+  school: string;
+  notes: string;
 }
 
 const typeConfig = {
@@ -46,7 +56,14 @@ const typeConfig = {
   print: { icon: Printer, label: "Cetak", className: "bg-info/15 text-info" },
 };
 
-const mockEvents: CalendarEvent[] = [
+const mockCustomers = [
+  { id: "sma1", name: "SMA Negeri 1 Jakarta" },
+  { id: "smpazhar", name: "SMP Islam Al-Azhar" },
+  { id: "sdtar", name: "SD Tarakanita" },
+  { id: "gonzaga", name: "SMA Gonzaga" },
+];
+
+const initialMockEvents: CalendarEvent[] = [
   { id: "1", title: "Meeting Proposal", school: "SMA Negeri 1 Jakarta", date: "2026-01-16", time: "10:00", type: "meeting" },
   { id: "2", title: "Pemotretan Kelas XII", school: "SMP Islam Al-Azhar", date: "2026-01-17", time: "08:00", type: "photo" },
   { id: "3", title: "Deadline Layout", school: "SD Tarakanita", date: "2026-01-18", time: "23:59", type: "design" },
@@ -56,11 +73,22 @@ const mockEvents: CalendarEvent[] = [
   { id: "7", title: "Deadline Final", school: "SMA Gonzaga", date: "2026-01-25", time: "23:59", type: "design" },
 ];
 
+const emptyFormData: EventFormData = {
+  title: "",
+  type: "",
+  date: "",
+  time: "",
+  school: "",
+  notes: "",
+};
+
 export default function Kalender() {
   const [currentDate, setCurrentDate] = useState(new Date(2026, 0, 16));
   const [view, setView] = useState<"month" | "week">("month");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [events, setEvents] = useState<CalendarEvent[]>(initialMockEvents);
+  const [formData, setFormData] = useState<EventFormData>(emptyFormData);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -96,7 +124,7 @@ export default function Kalender() {
     `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
   const getEventsForDate = (dateKey: string) =>
-    mockEvents.filter((event) => event.date === dateKey);
+    events.filter((event) => event.date === dateKey);
 
   const today = new Date();
   const isToday = (day: number) =>
@@ -105,6 +133,33 @@ export default function Kalender() {
   const handleDateClick = (day: number) => {
     const dateKey = getDateKey(day);
     setSelectedDate(dateKey);
+  };
+
+  const handleSubmit = () => {
+    if (!formData.title || !formData.type || !formData.date || !formData.time) {
+      return;
+    }
+
+    const newEvent: CalendarEvent = {
+      id: String(Date.now()),
+      title: formData.title,
+      type: formData.type as "meeting" | "photo" | "design" | "print",
+      date: formData.date,
+      time: formData.time,
+      school: formData.school,
+      notes: formData.notes,
+    };
+
+    setEvents(prev => [...prev, newEvent]);
+    setFormData(emptyFormData);
+    setIsDialogOpen(false);
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      setFormData(emptyFormData);
+    }
   };
 
   return (
@@ -291,7 +346,7 @@ export default function Kalender() {
             <div className="rounded-xl border border-border bg-card p-4">
               <h3 className="mb-3 font-semibold">Jadwal Terdekat</h3>
               <div className="space-y-3">
-                {mockEvents.slice(0, 4).map((event) => {
+                {events.slice(0, 4).map((event) => {
                   const config = typeConfig[event.type];
                   return (
                     <div key={event.id} className="flex items-center gap-3">
@@ -309,7 +364,7 @@ export default function Kalender() {
         </div>
 
         {/* Add Event Dialog */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Tambah Jadwal Baru</DialogTitle>
@@ -319,12 +374,22 @@ export default function Kalender() {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="title">Judul</Label>
-                <Input id="title" placeholder="Contoh: Meeting Proposal" />
+                <Label htmlFor="title">Judul *</Label>
+                <Input 
+                  id="title" 
+                  placeholder="Contoh: Meeting Proposal" 
+                  value={formData.title}
+                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="type">Tipe</Label>
-                <Select>
+                <Label htmlFor="type">Tipe *</Label>
+                <Select 
+                  value={formData.type} 
+                  onValueChange={(value: "meeting" | "photo" | "design" | "print") => 
+                    setFormData(prev => ({ ...prev, type: value }))
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih tipe jadwal" />
                   </SelectTrigger>
@@ -338,37 +403,58 @@ export default function Kalender() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="date">Tanggal</Label>
-                  <Input id="date" type="date" />
+                  <Label htmlFor="date">Tanggal *</Label>
+                  <Input 
+                    id="date" 
+                    type="date" 
+                    value={formData.date}
+                    onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                  />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="time">Waktu</Label>
-                  <Input id="time" type="time" />
+                  <Label htmlFor="time">Waktu *</Label>
+                  <Input 
+                    id="time" 
+                    type="time" 
+                    value={formData.time}
+                    onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
+                  />
                 </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="school">Pelanggan (Opsional)</Label>
-                <Select>
+                <Select 
+                  value={formData.school} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, school: value }))}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih sekolah" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="sma1">SMA Negeri 1 Jakarta</SelectItem>
-                    <SelectItem value="smpazhar">SMP Islam Al-Azhar</SelectItem>
-                    <SelectItem value="sdtar">SD Tarakanita</SelectItem>
+                    {mockCustomers.map(c => (
+                      <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="notes">Catatan</Label>
-                <Textarea id="notes" placeholder="Catatan tambahan" />
+                <Textarea 
+                  id="notes" 
+                  placeholder="Catatan tambahan" 
+                  value={formData.notes}
+                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <Button variant="outline" onClick={() => handleDialogClose(false)}>
                 Batal
               </Button>
-              <Button onClick={() => setIsDialogOpen(false)}>
+              <Button 
+                onClick={handleSubmit} 
+                disabled={!formData.title || !formData.type || !formData.date || !formData.time}
+              >
                 Simpan Jadwal
               </Button>
             </DialogFooter>

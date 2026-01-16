@@ -34,7 +34,22 @@ interface Payment {
   invoiceId: string;
 }
 
-const mockPayments: Payment[] = [
+interface PaymentFormData {
+  invoiceId: string;
+  school: string;
+  customer: string;
+  amount: string;
+  date: string;
+  description: string;
+}
+
+const mockInvoices = [
+  { id: "INV-2026-001", name: "SMA Negeri 1 Jakarta", pic: "Bpk. Ahmad" },
+  { id: "INV-2026-002", name: "SMP Islam Al-Azhar", pic: "Ibu Sari" },
+  { id: "INV-2026-003", name: "SMA Gonzaga", pic: "Ibu Dewi" },
+];
+
+const initialMockPayments: Payment[] = [
   {
     id: "1",
     receiptNumber: "KWT-2026-001",
@@ -66,6 +81,15 @@ const mockPayments: Payment[] = [
     invoiceId: "INV-2026-002",
   },
 ];
+
+const emptyFormData: PaymentFormData = {
+  invoiceId: "",
+  school: "",
+  customer: "",
+  amount: "",
+  date: "",
+  description: "",
+};
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("id-ID", {
@@ -99,11 +123,12 @@ const numberToWords = (num: number): string => {
 };
 
 export default function Pembayaran() {
-  const [payments] = useState<Payment[]>(mockPayments);
+  const [payments, setPayments] = useState<Payment[]>(initialMockPayments);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [formData, setFormData] = useState<PaymentFormData>(emptyFormData);
 
   const filteredPayments = payments.filter((payment) =>
     payment.school.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -115,6 +140,47 @@ export default function Pembayaran() {
   const openPreview = (payment: Payment) => {
     setSelectedPayment(payment);
     setIsPreviewOpen(true);
+  };
+
+  const handleInvoiceSelect = (invoiceId: string) => {
+    const invoice = mockInvoices.find(i => i.id === invoiceId);
+    if (invoice) {
+      setFormData(prev => ({
+        ...prev,
+        invoiceId,
+        school: invoice.name,
+        customer: invoice.pic,
+      }));
+    }
+  };
+
+  const handleSubmit = () => {
+    if (!formData.invoiceId || !formData.amount || !formData.date) {
+      return;
+    }
+
+    const receiptNumber = String(payments.length + 1).padStart(3, "0");
+    const newPayment: Payment = {
+      id: String(Date.now()),
+      receiptNumber: `KWT-2026-${receiptNumber}`,
+      customer: formData.customer,
+      school: formData.school,
+      amount: parseFloat(formData.amount) || 0,
+      description: formData.description,
+      date: formData.date,
+      invoiceId: formData.invoiceId,
+    };
+
+    setPayments(prev => [newPayment, ...prev]);
+    setFormData(emptyFormData);
+    setIsDialogOpen(false);
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      setFormData(emptyFormData);
+    }
   };
 
   return (
@@ -204,7 +270,7 @@ export default function Pembayaran() {
         </div>
 
         {/* Add Payment Dialog */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Catat Pembayaran Baru</DialogTitle>
@@ -214,35 +280,52 @@ export default function Pembayaran() {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label>Invoice</Label>
-                <Select>
+                <Label>Invoice *</Label>
+                <Select value={formData.invoiceId} onValueChange={handleInvoiceSelect}>
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih invoice" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="inv1">INV-2026-001 - SMA Negeri 1 Jakarta</SelectItem>
-                    <SelectItem value="inv2">INV-2026-002 - SMP Islam Al-Azhar</SelectItem>
+                    {mockInvoices.map(inv => (
+                      <SelectItem key={inv.id} value={inv.id}>{inv.id} - {inv.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label>Jumlah Pembayaran</Label>
-                <Input type="number" placeholder="22500000" />
+                <Label>Jumlah Pembayaran *</Label>
+                <Input 
+                  type="number" 
+                  placeholder="22500000" 
+                  value={formData.amount}
+                  onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                />
               </div>
               <div className="grid gap-2">
-                <Label>Tanggal Pembayaran</Label>
-                <Input type="date" />
+                <Label>Tanggal Pembayaran *</Label>
+                <Input 
+                  type="date" 
+                  value={formData.date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                />
               </div>
               <div className="grid gap-2">
                 <Label>Keterangan</Label>
-                <Textarea placeholder="Pembayaran DP 50% Buku Tahunan" />
+                <Textarea 
+                  placeholder="Pembayaran DP 50% Buku Tahunan" 
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <Button variant="outline" onClick={() => handleDialogClose(false)}>
                 Batal
               </Button>
-              <Button onClick={() => setIsDialogOpen(false)}>
+              <Button 
+                onClick={handleSubmit} 
+                disabled={!formData.invoiceId || !formData.amount || !formData.date}
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Simpan Pembayaran
               </Button>

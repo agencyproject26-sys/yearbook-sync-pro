@@ -39,6 +39,24 @@ interface Invoice {
   createdAt: string;
 }
 
+interface InvoiceItem {
+  description: string;
+  qty: string;
+  price: string;
+}
+
+interface InvoiceFormData {
+  customerId: string;
+  school: string;
+  customer: string;
+  dueDate: string;
+  items: InvoiceItem[];
+  dpDate: string;
+  dpAmount: string;
+  pelunasanDate: string;
+  pelunasanAmount: string;
+}
+
 const statusConfig = {
   draft: { label: "Draft", className: "bg-muted text-muted-foreground" },
   sent: { label: "Terkirim", className: "bg-info/15 text-info" },
@@ -46,7 +64,13 @@ const statusConfig = {
   overdue: { label: "Terlambat", className: "bg-destructive/15 text-destructive" },
 };
 
-const mockInvoices: Invoice[] = [
+const mockCustomers = [
+  { id: "sma1", name: "SMA Negeri 1 Jakarta", pic: "Bpk. Ahmad" },
+  { id: "smpazhar", name: "SMP Islam Al-Azhar", pic: "Ibu Sari" },
+  { id: "sdtar", name: "SD Tarakanita", pic: "Bpk. Budi" },
+];
+
+const initialMockInvoices: Invoice[] = [
   {
     id: "INV-2026-001",
     customer: "Bpk. Ahmad",
@@ -85,6 +109,18 @@ const mockInvoices: Invoice[] = [
   },
 ];
 
+const emptyFormData: InvoiceFormData = {
+  customerId: "",
+  school: "",
+  customer: "",
+  dueDate: "",
+  items: [{ description: "", qty: "", price: "" }],
+  dpDate: "",
+  dpAmount: "",
+  pelunasanDate: "",
+  pelunasanAmount: "",
+};
+
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
@@ -94,11 +130,12 @@ const formatCurrency = (value: number) => {
 };
 
 export default function Invoice() {
-  const [invoices] = useState<Invoice[]>(mockInvoices);
+  const [invoices, setInvoices] = useState<Invoice[]>(initialMockInvoices);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [formData, setFormData] = useState<InvoiceFormData>(emptyFormData);
 
   const filteredInvoices = invoices.filter((invoice) => {
     const matchesSearch =
@@ -111,6 +148,67 @@ export default function Invoice() {
   const unpaidTotal = invoices
     .filter((inv) => inv.status !== "paid")
     .reduce((sum, inv) => sum + inv.amount, 0);
+
+  const handleCustomerSelect = (customerId: string) => {
+    const customer = mockCustomers.find(c => c.id === customerId);
+    if (customer) {
+      setFormData(prev => ({
+        ...prev,
+        customerId,
+        school: customer.name,
+        customer: customer.pic,
+      }));
+    }
+  };
+
+  const handleAddItem = () => {
+    setFormData(prev => ({
+      ...prev,
+      items: [...prev.items, { description: "", qty: "", price: "" }],
+    }));
+  };
+
+  const handleItemChange = (index: number, field: keyof InvoiceItem, value: string) => {
+    const newItems = [...formData.items];
+    newItems[index][field] = value;
+    setFormData(prev => ({ ...prev, items: newItems }));
+  };
+
+  const calculateTotal = () => {
+    return formData.items.reduce((sum, item) => {
+      const qty = parseFloat(item.qty) || 0;
+      const price = parseFloat(item.price) || 0;
+      return sum + (qty * price);
+    }, 0);
+  };
+
+  const handleSubmit = () => {
+    if (!formData.customerId || !formData.dueDate || formData.items.length === 0) {
+      return;
+    }
+
+    const invoiceNumber = String(invoices.length + 1).padStart(3, "0");
+    const newInvoice: Invoice = {
+      id: `INV-2026-${invoiceNumber}`,
+      customer: formData.customer,
+      school: formData.school,
+      amount: calculateTotal(),
+      dueDate: formData.dueDate,
+      status: "draft",
+      createdAt: new Date().toISOString().split("T")[0],
+    };
+
+    setInvoices(prev => [newInvoice, ...prev]);
+    setFormData(emptyFormData);
+    setIsDialogOpen(false);
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      setFormData(emptyFormData);
+    }
+  };
 
   return (
     <MainLayout>
@@ -230,8 +328,8 @@ export default function Invoice() {
         </div>
 
         {/* Create Invoice Dialog */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-[600px]">
+        <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Buat Invoice Baru</DialogTitle>
               <DialogDescription>
@@ -241,20 +339,25 @@ export default function Invoice() {
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label>Pelanggan</Label>
-                  <Select>
+                  <Label>Pelanggan *</Label>
+                  <Select value={formData.customerId} onValueChange={handleCustomerSelect}>
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih sekolah" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="sma1">SMA Negeri 1 Jakarta</SelectItem>
-                      <SelectItem value="smpazhar">SMP Islam Al-Azhar</SelectItem>
+                      {mockCustomers.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="grid gap-2">
-                  <Label>Jatuh Tempo</Label>
-                  <Input type="date" />
+                  <Label>Jatuh Tempo *</Label>
+                  <Input 
+                    type="date" 
+                    value={formData.dueDate}
+                    onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
+                  />
                 </div>
               </div>
 
@@ -267,16 +370,44 @@ export default function Invoice() {
                     <div className="col-span-2">Harga</div>
                     <div className="col-span-3">Total</div>
                   </div>
-                  <div className="grid grid-cols-12 gap-2">
-                    <Input className="col-span-5" placeholder="Buku Tahunan" />
-                    <Input className="col-span-2" type="number" placeholder="100" />
-                    <Input className="col-span-2" placeholder="450000" />
-                    <Input className="col-span-3" value="Rp 45.000.000" readOnly />
+                  {formData.items.map((item, index) => (
+                    <div key={index} className="grid grid-cols-12 gap-2">
+                      <Input 
+                        className="col-span-5" 
+                        placeholder="Buku Tahunan" 
+                        value={item.description}
+                        onChange={(e) => handleItemChange(index, "description", e.target.value)}
+                      />
+                      <Input 
+                        className="col-span-2" 
+                        type="number" 
+                        placeholder="100" 
+                        value={item.qty}
+                        onChange={(e) => handleItemChange(index, "qty", e.target.value)}
+                      />
+                      <Input 
+                        className="col-span-2" 
+                        type="number"
+                        placeholder="450000" 
+                        value={item.price}
+                        onChange={(e) => handleItemChange(index, "price", e.target.value)}
+                      />
+                      <Input 
+                        className="col-span-3" 
+                        value={formatCurrency((parseFloat(item.qty) || 0) * (parseFloat(item.price) || 0))} 
+                        readOnly 
+                      />
+                    </div>
+                  ))}
+                  <div className="flex justify-between items-center">
+                    <Button variant="outline" size="sm" onClick={handleAddItem}>
+                      <Plus className="mr-2 h-3 w-3" />
+                      Tambah Item
+                    </Button>
+                    <div className="text-sm font-semibold">
+                      Total: {formatCurrency(calculateTotal())}
+                    </div>
                   </div>
-                  <Button variant="outline" size="sm">
-                    <Plus className="mr-2 h-3 w-3" />
-                    Tambah Item
-                  </Button>
                 </div>
               </div>
 
@@ -290,22 +421,47 @@ export default function Invoice() {
                   </div>
                   <div className="grid grid-cols-12 gap-2">
                     <Input className="col-span-4" value="DP 50%" readOnly />
-                    <Input className="col-span-4" type="date" />
-                    <Input className="col-span-4" placeholder="22500000" />
+                    <Input 
+                      className="col-span-4" 
+                      type="date" 
+                      value={formData.dpDate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, dpDate: e.target.value }))}
+                    />
+                    <Input 
+                      className="col-span-4" 
+                      type="number"
+                      placeholder="22500000" 
+                      value={formData.dpAmount}
+                      onChange={(e) => setFormData(prev => ({ ...prev, dpAmount: e.target.value }))}
+                    />
                   </div>
                   <div className="grid grid-cols-12 gap-2">
                     <Input className="col-span-4" value="Pelunasan 50%" readOnly />
-                    <Input className="col-span-4" type="date" />
-                    <Input className="col-span-4" placeholder="22500000" />
+                    <Input 
+                      className="col-span-4" 
+                      type="date" 
+                      value={formData.pelunasanDate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, pelunasanDate: e.target.value }))}
+                    />
+                    <Input 
+                      className="col-span-4" 
+                      type="number"
+                      placeholder="22500000" 
+                      value={formData.pelunasanAmount}
+                      onChange={(e) => setFormData(prev => ({ ...prev, pelunasanAmount: e.target.value }))}
+                    />
                   </div>
                 </div>
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <Button variant="outline" onClick={() => handleDialogClose(false)}>
                 Batal
               </Button>
-              <Button onClick={() => setIsDialogOpen(false)}>
+              <Button 
+                onClick={handleSubmit} 
+                disabled={!formData.customerId || !formData.dueDate || formData.items.every(i => !i.description)}
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Buat Invoice
               </Button>
