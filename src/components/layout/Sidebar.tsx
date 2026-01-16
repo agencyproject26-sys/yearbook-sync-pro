@@ -85,7 +85,12 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+      <nav className="flex-1 space-y-1.5 overflow-y-auto p-4">
+        <div className={cn("mb-3 px-3", collapsed && "hidden")}>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-sidebar-muted">
+            Menu Utama
+          </span>
+        </div>
         {menuItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
@@ -98,15 +103,18 @@ export function Sidebar() {
               )}
               title={collapsed ? item.label : undefined}
             >
-              <item.icon className="h-5 w-5 flex-shrink-0" />
-              {!collapsed && <span>{item.label}</span>}
+              <item.icon className={cn("h-5 w-5 flex-shrink-0", isActive && "text-sidebar-primary-foreground")} />
+              {!collapsed && <span className="flex-1">{item.label}</span>}
+              {isActive && !collapsed && (
+                <div className="h-2 w-2 rounded-full bg-sidebar-primary-foreground" />
+              )}
             </Link>
           );
         })}
       </nav>
 
       {/* Bottom Section */}
-      <div className="border-t border-sidebar-border p-3">
+      <div className="border-t border-sidebar-border p-4 space-y-1.5">
         {bottomItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
@@ -125,7 +133,7 @@ export function Sidebar() {
           );
         })}
         <button
-          className="sidebar-item w-full text-sidebar-muted hover:text-destructive"
+          className="sidebar-item w-full text-red-400 hover:bg-red-500/10 hover:text-red-300"
           title={collapsed ? "Keluar" : undefined}
         >
           <LogOut className="h-5 w-5 flex-shrink-0" />
