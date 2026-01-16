@@ -1,16 +1,10 @@
 import { useState } from "react";
-import { Search, Filter, MoreHorizontal, FileText, Link, FolderOpen, Mail, Plus, Loader2, Eye, EyeOff, ExternalLink, Pencil } from "lucide-react";
+import { Search, Filter, FileText, Link, FolderOpen, Mail, Loader2, Eye, EyeOff, ExternalLink, Trash2 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -27,6 +21,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -36,7 +40,6 @@ import {
 } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
 import { useOrders, type OrderFormData, type Order } from "@/hooks/useOrders";
 import { useCustomers } from "@/hooks/useCustomers";
 
@@ -63,7 +66,7 @@ const emptyFormData: OrderFormData = {
 };
 
 export default function Order() {
-  const { orders, loading, addOrder, updateOrder } = useOrders();
+  const { orders, loading, addOrder, updateOrder, deleteOrder } = useOrders();
   const { customers } = useCustomers();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -84,6 +87,11 @@ export default function Order() {
   const [isDriveDialogOpen, setIsDriveDialogOpen] = useState(false);
   const [driveLink, setDriveLink] = useState("");
   const [isLinkSubmitting, setIsLinkSubmitting] = useState(false);
+  
+  // Delete dialog
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
@@ -180,6 +188,21 @@ export default function Order() {
 
   const openExternalLink = (url: string) => {
     window.open(url, "_blank");
+  };
+
+  // Delete handlers
+  const handleOpenDeleteDialog = (order: Order) => {
+    setOrderToDelete(order);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!orderToDelete) return;
+    setIsDeleting(true);
+    await deleteOrder(orderToDelete.id);
+    setIsDeleting(false);
+    setIsDeleteDialogOpen(false);
+    setOrderToDelete(null);
   };
 
   if (loading) {
@@ -372,18 +395,14 @@ export default function Order() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>Lihat Detail</DropdownMenuItem>
-                          <DropdownMenuItem>Buat Invoice</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">Hapus</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => handleOpenDeleteDialog(order)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );
@@ -456,7 +475,6 @@ export default function Order() {
               </Button>
               <Button onClick={handleSubmit} disabled={!formData.customer_id || !formData.value || isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                <Plus className="mr-2 h-4 w-4" />
                 Buat Order
               </Button>
             </DialogFooter>
@@ -630,6 +648,29 @@ export default function Order() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Hapus Order</AlertDialogTitle>
+              <AlertDialogDescription>
+                Apakah Anda yakin ingin menghapus order "{orderToDelete?.order_number}" untuk {orderToDelete?.customers?.name}? Tindakan ini tidak dapat dibatalkan.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleConfirmDelete} 
+                disabled={isDeleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Hapus
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </MainLayout>
   );

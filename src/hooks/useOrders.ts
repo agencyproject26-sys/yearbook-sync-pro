@@ -126,9 +126,33 @@ export const useOrders = () => {
     return updateOrder(id, { status });
   };
 
+  const deleteOrder = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      setOrders(prev => prev.filter(o => o.id !== id));
+      toast({
+        title: "Berhasil",
+        description: "Order berhasil dihapus",
+      });
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Gagal menghapus order",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   useEffect(() => {
     fetchOrders();
   }, []);
 
-  return { orders, loading, addOrder, updateOrder, updateOrderStatus, refetch: fetchOrders };
+  return { orders, loading, addOrder, updateOrder, updateOrderStatus, deleteOrder, refetch: fetchOrders };
 };
