@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Filter, MoreHorizontal, FileText, Link, FolderOpen, Mail, Plus, Loader2 } from "lucide-react";
+import { Search, Filter, MoreHorizontal, FileText, Link, FolderOpen, Mail, Plus, Loader2, Eye, EyeOff, ExternalLink, Pencil } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -26,10 +26,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { useOrders, OrderFormData } from "@/hooks/useOrders";
+import { useOrders, type OrderFormData, type Order } from "@/hooks/useOrders";
 import { useCustomers } from "@/hooks/useCustomers";
 
 const statusConfig = {
@@ -55,13 +63,27 @@ const emptyFormData: OrderFormData = {
 };
 
 export default function Order() {
-  const { orders, loading, addOrder } = useOrders();
+  const { orders, loading, addOrder, updateOrder } = useOrders();
   const { customers } = useCustomers();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState<OrderFormData>(emptyFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Edit dialogs
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [isMouDialogOpen, setIsMouDialogOpen] = useState(false);
+  const [mouLink, setMouLink] = useState("");
+  const [isGmailDialogOpen, setIsGmailDialogOpen] = useState(false);
+  const [gmailEmail, setGmailEmail] = useState("");
+  const [gmailPassword, setGmailPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSpreadsheetDialogOpen, setIsSpreadsheetDialogOpen] = useState(false);
+  const [spreadsheetLink, setSpreadsheetLink] = useState("");
+  const [isDriveDialogOpen, setIsDriveDialogOpen] = useState(false);
+  const [driveLink, setDriveLink] = useState("");
+  const [isLinkSubmitting, setIsLinkSubmitting] = useState(false);
 
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
@@ -89,6 +111,75 @@ export default function Order() {
   const handleDialogClose = (open: boolean) => {
     setIsDialogOpen(open);
     if (!open) setFormData(emptyFormData);
+  };
+
+  // MOU Dialog handlers
+  const handleOpenMouDialog = (order: Order) => {
+    setEditingOrder(order);
+    setMouLink(order.mou_link || "");
+    setIsMouDialogOpen(true);
+  };
+
+  const handleSaveMouLink = async () => {
+    if (!editingOrder) return;
+    setIsLinkSubmitting(true);
+    await updateOrder(editingOrder.id, { mou_link: mouLink || null, has_mou: !!mouLink });
+    setIsLinkSubmitting(false);
+    setIsMouDialogOpen(false);
+    setEditingOrder(null);
+  };
+
+  // Gmail Dialog handlers
+  const handleOpenGmailDialog = (order: Order) => {
+    setEditingOrder(order);
+    setGmailEmail(order.gmail_email || "");
+    setGmailPassword(order.gmail_password || "");
+    setIsGmailDialogOpen(true);
+  };
+
+  const handleSaveGmail = async () => {
+    if (!editingOrder) return;
+    setIsLinkSubmitting(true);
+    await updateOrder(editingOrder.id, { gmail_email: gmailEmail || null, gmail_password: gmailPassword || null });
+    setIsLinkSubmitting(false);
+    setIsGmailDialogOpen(false);
+    setEditingOrder(null);
+  };
+
+  // Spreadsheet Dialog handlers
+  const handleOpenSpreadsheetDialog = (order: Order) => {
+    setEditingOrder(order);
+    setSpreadsheetLink(order.spreadsheet_link || "");
+    setIsSpreadsheetDialogOpen(true);
+  };
+
+  const handleSaveSpreadsheetLink = async () => {
+    if (!editingOrder) return;
+    setIsLinkSubmitting(true);
+    await updateOrder(editingOrder.id, { spreadsheet_link: spreadsheetLink || null, has_spreadsheet: !!spreadsheetLink });
+    setIsLinkSubmitting(false);
+    setIsSpreadsheetDialogOpen(false);
+    setEditingOrder(null);
+  };
+
+  // Drive Dialog handlers
+  const handleOpenDriveDialog = (order: Order) => {
+    setEditingOrder(order);
+    setDriveLink(order.drive_link || "");
+    setIsDriveDialogOpen(true);
+  };
+
+  const handleSaveDriveLink = async () => {
+    if (!editingOrder) return;
+    setIsLinkSubmitting(true);
+    await updateOrder(editingOrder.id, { drive_link: driveLink || null, has_drive: !!driveLink });
+    setIsLinkSubmitting(false);
+    setIsDriveDialogOpen(false);
+    setEditingOrder(null);
+  };
+
+  const openExternalLink = (url: string) => {
+    window.open(url, "_blank");
   };
 
   if (loading) {
@@ -161,66 +252,126 @@ export default function Order() {
         </div>
 
         {/* Orders Table */}
-        <div className="rounded-xl border border-border bg-card overflow-hidden">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>ID Order</th>
-                <th>Sekolah</th>
-                <th>PIC</th>
-                <th>Status</th>
-                <th>Nilai</th>
-                <th>Dokumen</th>
-                <th>Tanggal</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
+        <div className="rounded-xl border border-border bg-card overflow-hidden overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nama Pelanggan</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-center">MOU</TableHead>
+                <TableHead className="text-center">Akun Gmail</TableHead>
+                <TableHead className="text-center">Spreadsheet</TableHead>
+                <TableHead className="text-center">Google Drive</TableHead>
+                <TableHead>Catatan</TableHead>
+                <TableHead className="w-[60px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {filteredOrders.map((order) => {
                 const status = statusConfig[order.status];
                 return (
-                  <tr key={order.id}>
-                    <td className="font-medium">{order.order_number}</td>
-                    <td>
+                  <TableRow key={order.id}>
+                    <TableCell>
                       <div>
                         <p className="font-medium">{order.customers?.name}</p>
+                        <p className="text-xs text-muted-foreground">{order.order_number}</p>
                       </div>
-                    </td>
-                    <td className="text-muted-foreground">{order.customers?.pic_name}</td>
-                    <td>
+                    </TableCell>
+                    <TableCell>
                       <Badge className={status.className}>{status.label}</Badge>
-                    </td>
-                    <td className="font-semibold">{formatCurrency(Number(order.value))}</td>
-                    <td>
-                      <div className="flex gap-1">
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-1">
                         <Button
-                          variant="ghost"
-                          size="icon"
-                          className={cn("h-8 w-8", order.has_mou ? "text-success" : "text-muted-foreground")}
-                          title="MOU"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenMouDialog(order)}
                         >
-                          <FileText className="h-4 w-4" />
+                          <FileText className="mr-1 h-3 w-3" />
+                          {order.mou_link ? "Edit" : "Generate"} MOU
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className={cn("h-8 w-8", order.has_spreadsheet ? "text-success" : "text-muted-foreground")}
-                          title="Spreadsheet"
-                        >
-                          <Link className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className={cn("h-8 w-8", order.has_drive ? "text-success" : "text-muted-foreground")}
-                          title="Google Drive"
-                        >
-                          <FolderOpen className="h-4 w-4" />
-                        </Button>
+                        {order.mou_link && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-success"
+                            onClick={() => openExternalLink(order.mou_link!)}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
-                    </td>
-                    <td className="text-muted-foreground">{new Date(order.created_at).toLocaleDateString("id-ID")}</td>
-                    <td>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenGmailDialog(order)}
+                        className={order.gmail_email ? "border-success text-success" : ""}
+                      >
+                        <Mail className="mr-1 h-3 w-3" />
+                        {order.gmail_email ? "Lihat" : "Generate"} Akun
+                      </Button>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenSpreadsheetDialog(order)}
+                        >
+                          <Link className="mr-1 h-3 w-3" />
+                          {order.spreadsheet_link ? "Edit" : "Buat"} Spreadsheet
+                        </Button>
+                        {order.spreadsheet_link && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-success"
+                            onClick={() => openExternalLink(order.spreadsheet_link!)}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenDriveDialog(order)}
+                        >
+                          <FolderOpen className="mr-1 h-3 w-3" />
+                          {order.drive_link ? "Edit" : "Generate"} Drive
+                        </Button>
+                        {order.drive_link && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-success"
+                            onClick={() => openExternalLink(order.drive_link!)}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="max-w-[200px]">
+                        {order.wa_desc && (
+                          <p className="text-xs text-muted-foreground truncate" title={order.wa_desc}>
+                            WA: {order.wa_desc}
+                          </p>
+                        )}
+                        {order.notes && (
+                          <p className="text-xs text-muted-foreground truncate" title={order.notes}>
+                            {order.notes}
+                          </p>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon">
@@ -229,18 +380,16 @@ export default function Order() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem>Lihat Detail</DropdownMenuItem>
-                          <DropdownMenuItem>Edit Order</DropdownMenuItem>
-                          <DropdownMenuItem>Generate MOU</DropdownMenuItem>
                           <DropdownMenuItem>Buat Invoice</DropdownMenuItem>
                           <DropdownMenuItem className="text-destructive">Hapus</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
 
         {/* Create Order Dialog */}
@@ -279,28 +428,6 @@ export default function Order() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-border p-4">
-                <h4 className="mb-3 font-medium">Generate Dokumen</h4>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Button variant="outline" className="justify-start gap-2">
-                    <FileText className="h-4 w-4" />
-                    Generate MOU (Canva)
-                  </Button>
-                  <Button variant="outline" className="justify-start gap-2">
-                    <Mail className="h-4 w-4" />
-                    Generate Akun Gmail
-                  </Button>
-                  <Button variant="outline" className="justify-start gap-2">
-                    <Link className="h-4 w-4" />
-                    Buat Spreadsheet
-                  </Button>
-                  <Button variant="outline" className="justify-start gap-2">
-                    <FolderOpen className="h-4 w-4" />
-                    Generate Google Drive
-                  </Button>
-                </div>
-              </div>
-
               <div className="grid gap-2">
                 <Label htmlFor="waDesc">Deskripsi Grup WhatsApp</Label>
                 <Textarea
@@ -331,6 +458,174 @@ export default function Order() {
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <Plus className="mr-2 h-4 w-4" />
                 Buat Order
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* MOU Dialog */}
+        <Dialog open={isMouDialogOpen} onOpenChange={(open) => { setIsMouDialogOpen(open); if (!open) setEditingOrder(null); }}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Generate MOU</DialogTitle>
+              <DialogDescription>
+                MOU untuk {editingOrder?.customers?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <Button variant="outline" className="w-full" onClick={() => openExternalLink("https://www.canva.com/design/new?template=mou")}>
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Buka Template MOU di Canva
+              </Button>
+              <div className="grid gap-2">
+                <Label>Link MOU (Opsional)</Label>
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder="https://www.canva.com/design/..." 
+                    value={mouLink}
+                    onChange={(e) => setMouLink(e.target.value)}
+                  />
+                  {mouLink && (
+                    <Button variant="ghost" size="icon" onClick={() => openExternalLink(mouLink)}>
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsMouDialogOpen(false)}>Batal</Button>
+              <Button onClick={handleSaveMouLink} disabled={isLinkSubmitting}>
+                {isLinkSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Simpan
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Gmail Dialog */}
+        <Dialog open={isGmailDialogOpen} onOpenChange={(open) => { setIsGmailDialogOpen(open); if (!open) setEditingOrder(null); }}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Akun Gmail</DialogTitle>
+              <DialogDescription>
+                Akun Gmail untuk {editingOrder?.customers?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Email</Label>
+                <Input 
+                  type="email"
+                  placeholder="akun@gmail.com" 
+                  value={gmailEmail}
+                  onChange={(e) => setGmailEmail(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Password</Label>
+                <div className="flex gap-2">
+                  <Input 
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password" 
+                    value={gmailPassword}
+                    onChange={(e) => setGmailPassword(e.target.value)}
+                  />
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsGmailDialogOpen(false)}>Batal</Button>
+              <Button onClick={handleSaveGmail} disabled={isLinkSubmitting}>
+                {isLinkSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Simpan
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Spreadsheet Dialog */}
+        <Dialog open={isSpreadsheetDialogOpen} onOpenChange={(open) => { setIsSpreadsheetDialogOpen(open); if (!open) setEditingOrder(null); }}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Spreadsheet</DialogTitle>
+              <DialogDescription>
+                Spreadsheet untuk {editingOrder?.customers?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <Button variant="outline" className="w-full" onClick={() => openExternalLink("https://docs.google.com/spreadsheets/create")}>
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Buat Spreadsheet Baru
+              </Button>
+              <div className="grid gap-2">
+                <Label>Link Spreadsheet</Label>
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder="https://docs.google.com/spreadsheets/..." 
+                    value={spreadsheetLink}
+                    onChange={(e) => setSpreadsheetLink(e.target.value)}
+                  />
+                  {spreadsheetLink && (
+                    <Button variant="ghost" size="icon" onClick={() => openExternalLink(spreadsheetLink)}>
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsSpreadsheetDialogOpen(false)}>Batal</Button>
+              <Button onClick={handleSaveSpreadsheetLink} disabled={isLinkSubmitting}>
+                {isLinkSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Simpan
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Drive Dialog */}
+        <Dialog open={isDriveDialogOpen} onOpenChange={(open) => { setIsDriveDialogOpen(open); if (!open) setEditingOrder(null); }}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Google Drive</DialogTitle>
+              <DialogDescription>
+                Folder Google Drive untuk {editingOrder?.customers?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <Button variant="outline" className="w-full" onClick={() => openExternalLink("https://drive.google.com/drive/my-drive")}>
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Buka Google Drive
+              </Button>
+              <div className="grid gap-2">
+                <Label>Link Folder Drive</Label>
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder="https://drive.google.com/drive/folders/..." 
+                    value={driveLink}
+                    onChange={(e) => setDriveLink(e.target.value)}
+                  />
+                  {driveLink && (
+                    <Button variant="ghost" size="icon" onClick={() => openExternalLink(driveLink)}>
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDriveDialogOpen(false)}>Batal</Button>
+              <Button onClick={handleSaveDriveLink} disabled={isLinkSubmitting}>
+                {isLinkSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Simpan
               </Button>
             </DialogFooter>
           </DialogContent>

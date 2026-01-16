@@ -64,6 +64,7 @@ export type Database = {
           name: string
           phones: string[] | null
           pic_name: string
+          sph_link: string | null
           status: string
           updated_at: string
         }
@@ -75,6 +76,7 @@ export type Database = {
           name: string
           phones?: string[] | null
           pic_name: string
+          sph_link?: string | null
           status?: string
           updated_at?: string
         }
@@ -86,6 +88,7 @@ export type Database = {
           name?: string
           phones?: string[] | null
           pic_name?: string
+          sph_link?: string | null
           status?: string
           updated_at?: string
         }
@@ -102,6 +105,7 @@ export type Database = {
           id: string
           invoice_number: string
           items: Json | null
+          payment_terms: Json | null
           pelunasan_amount: number | null
           pelunasan_date: string | null
           status: string
@@ -116,6 +120,7 @@ export type Database = {
           id?: string
           invoice_number: string
           items?: Json | null
+          payment_terms?: Json | null
           pelunasan_amount?: number | null
           pelunasan_date?: string | null
           status?: string
@@ -130,6 +135,7 @@ export type Database = {
           id?: string
           invoice_number?: string
           items?: Json | null
+          payment_terms?: Json | null
           pelunasan_amount?: number | null
           pelunasan_date?: string | null
           status?: string
@@ -148,12 +154,17 @@ export type Database = {
         Row: {
           created_at: string
           customer_id: string
+          drive_link: string | null
+          gmail_email: string | null
+          gmail_password: string | null
           has_drive: boolean | null
           has_mou: boolean | null
           has_spreadsheet: boolean | null
           id: string
+          mou_link: string | null
           notes: string | null
           order_number: string
+          spreadsheet_link: string | null
           status: string
           updated_at: string
           value: number
@@ -162,12 +173,17 @@ export type Database = {
         Insert: {
           created_at?: string
           customer_id: string
+          drive_link?: string | null
+          gmail_email?: string | null
+          gmail_password?: string | null
           has_drive?: boolean | null
           has_mou?: boolean | null
           has_spreadsheet?: boolean | null
           id?: string
+          mou_link?: string | null
           notes?: string | null
           order_number: string
+          spreadsheet_link?: string | null
           status?: string
           updated_at?: string
           value?: number
@@ -176,12 +192,17 @@ export type Database = {
         Update: {
           created_at?: string
           customer_id?: string
+          drive_link?: string | null
+          gmail_email?: string | null
+          gmail_password?: string | null
           has_drive?: boolean | null
           has_mou?: boolean | null
           has_spreadsheet?: boolean | null
           id?: string
+          mou_link?: string | null
           notes?: string | null
           order_number?: string
+          spreadsheet_link?: string | null
           status?: string
           updated_at?: string
           value?: number

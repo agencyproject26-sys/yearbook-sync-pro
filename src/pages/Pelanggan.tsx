@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Filter, MoreHorizontal, Phone, MapPin, Building, User, X, Loader2, FileText, ExternalLink, Pencil } from "lucide-react";
+import { Plus, Search, Filter, MoreHorizontal, X, Loader2, FileText, ExternalLink, Pencil, Link2 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -28,9 +28,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { useCustomers, CustomerFormData, Customer } from "@/hooks/useCustomers";
 import { useOrders, OrderFormData } from "@/hooks/useOrders";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const statusConfig = {
   prospek: { label: "Prospek", className: "bg-warning/15 text-warning hover:bg-warning/20" },
@@ -55,8 +65,9 @@ const emptyOrderFormData: OrderFormData = {
 };
 
 export default function Pelanggan() {
-  const { customers, loading, addCustomer, deleteCustomer, updateCustomer } = useCustomers();
+  const { customers, loading, addCustomer, deleteCustomer, updateCustomer, refetch } = useCustomers();
   const { addOrder } = useOrders();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -72,11 +83,13 @@ export default function Pelanggan() {
   // Order dialog state
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
   const [orderFormData, setOrderFormData] = useState<OrderFormData>(emptyOrderFormData);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isOrderSubmitting, setIsOrderSubmitting] = useState(false);
   
   // SPH dialog state
   const [isSphDialogOpen, setIsSphDialogOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [sphLink, setSphLink] = useState("");
+  const [isSphSubmitting, setIsSphSubmitting] = useState(false);
 
   const filteredCustomers = customers.filter((customer) => {
     const matchesSearch = customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -186,6 +199,17 @@ export default function Pelanggan() {
     
     setIsOrderSubmitting(true);
     const success = await addOrder(orderFormData);
+    
+    if (success && selectedCustomer && selectedCustomer.status === "prospek") {
+      // Update customer status to aktif
+      await updateCustomer(selectedCustomer.id, {
+        ...selectedCustomer,
+        phones: selectedCustomer.phones || [],
+        address: selectedCustomer.address || "",
+        status: "aktif",
+      });
+    }
+    
     setIsOrderSubmitting(false);
     
     if (success) {
@@ -206,18 +230,43 @@ export default function Pelanggan() {
   // Handle SPH (Surat Penawaran Harga)
   const handleCreateSph = (customer: Customer) => {
     setSelectedCustomer(customer);
+    setSphLink(customer.sph_link || "");
     setIsSphDialogOpen(true);
   };
 
-  const handleSphDialogClose = (open: boolean) => {
-    setIsSphDialogOpen(open);
-    if (!open) setSelectedCustomer(null);
+  const handleSaveSphLink = async () => {
+    if (!selectedCustomer) return;
+    
+    setIsSphSubmitting(true);
+    const { error } = await supabase
+      .from("customers")
+      .update({ sph_link: sphLink || null })
+      .eq("id", selectedCustomer.id);
+    
+    if (!error) {
+      toast({
+        title: "Berhasil",
+        description: "Link SPH berhasil disimpan",
+      });
+      refetch();
+    } else {
+      toast({
+        title: "Error",
+        description: "Gagal menyimpan link SPH",
+        variant: "destructive",
+      });
+    }
+    setIsSphSubmitting(false);
+    setIsSphDialogOpen(false);
+    setSelectedCustomer(null);
   };
 
   const openCanvaSph = () => {
-    // Open Canva SPH template - this would be the template link
-    const canvaUrl = `https://www.canva.com/design/new?template=sph`;
-    window.open(canvaUrl, "_blank");
+    window.open("https://www.canva.com/design/new?template=sph", "_blank");
+  };
+
+  const openSphLink = (link: string) => {
+    window.open(link, "_blank");
   };
 
   if (loading) {
@@ -271,112 +320,104 @@ export default function Pelanggan() {
           </p>
         </div>
 
-        {/* Customer Cards Grid */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredCustomers.map((customer) => {
-            const status = statusConfig[customer.status];
-            return (
-              <div
-                key={customer.id}
-                className="group rounded-xl border border-border bg-card p-5 transition-all duration-200 hover:border-primary/20 hover:shadow-card"
-              >
-                <div className="mb-4 flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                      <Building className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">{customer.name}</h3>
-                      <Badge className={cn("mt-1", status.className)}>
-                        {status.label}
-                      </Badge>
-                    </div>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>Lihat Detail</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleEditCustomer(customer)}>
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleCreateSph(customer)}>
-                        <FileText className="mr-2 h-4 w-4" />
-                        Buat SPH
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleCreateOrder(customer)}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Buat Order
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        className="text-destructive"
-                        onClick={() => deleteCustomer(customer.id)}
+        {/* Customer Table */}
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nama Pelanggan</TableHead>
+                <TableHead>PIC</TableHead>
+                <TableHead>Kota</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-center">SPH</TableHead>
+                <TableHead className="text-center">Order</TableHead>
+                <TableHead className="w-[60px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredCustomers.map((customer) => {
+                const status = statusConfig[customer.status];
+                return (
+                  <TableRow key={customer.id}>
+                    <TableCell className="font-medium">{customer.name}</TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{customer.pic_name}</p>
+                        {customer.phones?.length > 0 && (
+                          <p className="text-xs text-muted-foreground">{customer.phones[0]}</p>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{customer.city}</TableCell>
+                    <TableCell>
+                      <Badge className={cn(status.className)}>{status.label}</Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCreateSph(customer)}
+                        >
+                          <FileText className="mr-1 h-3 w-3" />
+                          {customer.sph_link ? "Edit" : "Buat"} SPH
+                        </Button>
+                        {customer.sph_link && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-success"
+                            onClick={() => openSphLink(customer.sph_link!)}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Button
+                        size="sm"
+                        onClick={() => handleCreateOrder(customer)}
                       >
-                        Hapus
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-start gap-2">
-                    <User className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                    <p className="text-sm font-medium text-foreground">{customer.pic_name}</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{customer.city}</p>
-                      <p className="text-xs text-muted-foreground">{customer.address}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Phone className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                    <div className="flex flex-wrap gap-2">
-                      {customer.phones?.map((phone, idx) => (
-                        <span key={idx} className="text-sm text-foreground">
-                          {phone}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex gap-2 border-t border-border pt-4">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex-1"
-                    onClick={() => handleCreateSph(customer)}
-                  >
-                    <FileText className="mr-1 h-3 w-3" />
-                    Buat SPH
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    className="flex-1"
-                    onClick={() => handleCreateOrder(customer)}
-                  >
-                    <Plus className="mr-1 h-3 w-3" />
-                    Buat Order
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
+                        <Plus className="mr-1 h-3 w-3" />
+                        Buat Order
+                      </Button>
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEditCustomer(customer)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={() => deleteCustomer(customer.id)}
+                          >
+                            Hapus
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+          
+          {filteredCustomers.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
+              <h3 className="text-lg font-medium">Belum ada pelanggan</h3>
+              <p className="text-sm text-muted-foreground">Klik tombol "Tambah Pelanggan" untuk menambahkan pelanggan baru.</p>
+            </div>
+          )}
         </div>
-
-        {filteredCustomers.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Building className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-medium">Belum ada pelanggan</h3>
-            <p className="text-sm text-muted-foreground">Klik tombol "Tambah Pelanggan" untuk menambahkan pelanggan baru.</p>
-          </div>
-        )}
 
         {/* Add Customer Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
@@ -473,13 +514,10 @@ export default function Pelanggan() {
               <Button variant="outline" onClick={() => handleDialogClose(false)}>
                 Batal
               </Button>
-              <Button 
-                onClick={handleSubmit} 
-                disabled={!formData.name || !formData.pic_name || !formData.city || isSubmitting}
-              >
+              <Button onClick={handleSubmit} disabled={!formData.name || !formData.pic_name || !formData.city || isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <Plus className="mr-2 h-4 w-4" />
-                Simpan Pelanggan
+                Tambah Pelanggan
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -491,24 +529,22 @@ export default function Pelanggan() {
             <DialogHeader>
               <DialogTitle>Edit Pelanggan</DialogTitle>
               <DialogDescription>
-                Ubah informasi pelanggan {editingCustomer?.name}
+                Perbarui informasi pelanggan.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="editName">Nama Sekolah *</Label>
+                <Label htmlFor="edit_name">Nama Sekolah *</Label>
                 <Input 
-                  id="editName" 
-                  placeholder="Contoh: SMA Negeri 1 Jakarta" 
+                  id="edit_name" 
                   value={editFormData.name}
                   onChange={(e) => setEditFormData(prev => ({ ...prev, name: e.target.value }))}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="editPicName">Nama PIC *</Label>
+                <Label htmlFor="edit_pic_name">Nama PIC *</Label>
                 <Input 
-                  id="editPicName" 
-                  placeholder="Contoh: Bpk. Ahmad / Ibu Sari" 
+                  id="edit_pic_name" 
                   value={editFormData.pic_name}
                   onChange={(e) => setEditFormData(prev => ({ ...prev, pic_name: e.target.value }))}
                 />
@@ -518,7 +554,6 @@ export default function Pelanggan() {
                 {editFormData.phones.map((phone, index) => (
                   <div key={index} className="flex gap-2">
                     <Input 
-                      placeholder="08xxxxxxxxxx" 
                       value={phone}
                       onChange={(e) => handleEditPhoneChange(index, e.target.value)}
                     />
@@ -540,25 +575,23 @@ export default function Pelanggan() {
                 </Button>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="editCity">Kota *</Label>
+                <Label htmlFor="edit_city">Kota *</Label>
                 <Input 
-                  id="editCity" 
-                  placeholder="Contoh: Jakarta Selatan" 
+                  id="edit_city" 
                   value={editFormData.city}
                   onChange={(e) => setEditFormData(prev => ({ ...prev, city: e.target.value }))}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="editAddress">Alamat Lengkap</Label>
+                <Label htmlFor="edit_address">Alamat Lengkap</Label>
                 <Textarea 
-                  id="editAddress" 
-                  placeholder="Masukkan alamat lengkap sekolah" 
+                  id="edit_address" 
                   value={editFormData.address}
                   onChange={(e) => setEditFormData(prev => ({ ...prev, address: e.target.value }))}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="editStatus">Status</Label>
+                <Label htmlFor="edit_status">Status</Label>
                 <Select 
                   value={editFormData.status} 
                   onValueChange={(value: "prospek" | "aktif" | "selesai") => 
@@ -580,12 +613,8 @@ export default function Pelanggan() {
               <Button variant="outline" onClick={() => handleEditDialogClose(false)}>
                 Batal
               </Button>
-              <Button 
-                onClick={handleEditSubmit} 
-                disabled={!editFormData.name || !editFormData.pic_name || !editFormData.city || isEditSubmitting}
-              >
+              <Button onClick={handleEditSubmit} disabled={!editFormData.name || !editFormData.pic_name || !editFormData.city || isEditSubmitting}>
                 {isEditSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                <Pencil className="mr-2 h-4 w-4" />
                 Simpan Perubahan
               </Button>
             </DialogFooter>
@@ -602,46 +631,37 @@ export default function Pelanggan() {
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="rounded-lg border border-border bg-muted/50 p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                    <Building className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium">{selectedCustomer?.name}</p>
-                    <p className="text-sm text-muted-foreground">{selectedCustomer?.city}</p>
-                  </div>
+              {selectedCustomer && (
+                <div className="rounded-lg border border-border bg-muted/30 p-3">
+                  <p className="font-medium">{selectedCustomer.name}</p>
+                  <p className="text-sm text-muted-foreground">PIC: {selectedCustomer.pic_name}</p>
+                  <p className="text-sm text-muted-foreground">{selectedCustomer.city}</p>
                 </div>
-              </div>
-              
+              )}
               <div className="grid gap-2">
-                <Label htmlFor="orderValue">Nilai Order (Rp) *</Label>
+                <Label htmlFor="order_value">Nilai Order (Rp) *</Label>
                 <Input 
-                  id="orderValue" 
+                  id="order_value" 
                   type="number" 
-                  placeholder="Contoh: 45000000" 
+                  placeholder="45000000" 
                   value={orderFormData.value || ""}
                   onChange={(e) => setOrderFormData(prev => ({ ...prev, value: parseFloat(e.target.value) || 0 }))}
                 />
               </div>
-              
               <div className="grid gap-2">
-                <Label htmlFor="waDesc">Deskripsi Grup WhatsApp</Label>
+                <Label htmlFor="wa_desc">Deskripsi Grup WhatsApp</Label>
                 <Textarea
-                  id="waDesc"
+                  id="wa_desc"
                   placeholder="Masukkan deskripsi untuk grup WhatsApp"
-                  rows={2}
                   value={orderFormData.wa_desc}
                   onChange={(e) => setOrderFormData(prev => ({ ...prev, wa_desc: e.target.value }))}
                 />
               </div>
-
               <div className="grid gap-2">
-                <Label htmlFor="orderNotes">Catatan Internal</Label>
+                <Label htmlFor="order_notes">Catatan Internal</Label>
                 <Textarea
-                  id="orderNotes"
+                  id="order_notes"
                   placeholder="Catatan tambahan untuk order ini"
-                  rows={2}
                   value={orderFormData.notes}
                   onChange={(e) => setOrderFormData(prev => ({ ...prev, notes: e.target.value }))}
                 />
@@ -651,10 +671,7 @@ export default function Pelanggan() {
               <Button variant="outline" onClick={() => handleOrderDialogClose(false)}>
                 Batal
               </Button>
-              <Button 
-                onClick={handleOrderSubmit} 
-                disabled={!orderFormData.value || isOrderSubmitting}
-              >
+              <Button onClick={handleOrderSubmit} disabled={!orderFormData.value || isOrderSubmitting}>
                 {isOrderSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <Plus className="mr-2 h-4 w-4" />
                 Buat Order
@@ -664,39 +681,56 @@ export default function Pelanggan() {
         </Dialog>
 
         {/* SPH Dialog */}
-        <Dialog open={isSphDialogOpen} onOpenChange={handleSphDialogClose}>
-          <DialogContent className="sm:max-w-[450px]">
+        <Dialog open={isSphDialogOpen} onOpenChange={(open) => { setIsSphDialogOpen(open); if (!open) setSelectedCustomer(null); }}>
+          <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle>Buat SPH (Surat Penawaran Harga)</DialogTitle>
+              <DialogTitle>Buat SPH</DialogTitle>
               <DialogDescription>
-                Generate SPH untuk {selectedCustomer?.name}
+                Surat Penawaran Harga untuk {selectedCustomer?.name}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="rounded-lg border border-border bg-muted/50 p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                    <Building className="h-5 w-5 text-primary" />
-                  </div>
+              <div className="rounded-lg border border-border p-4">
+                <div className="flex items-center justify-between mb-3">
                   <div>
                     <p className="font-medium">{selectedCustomer?.name}</p>
                     <p className="text-sm text-muted-foreground">PIC: {selectedCustomer?.pic_name}</p>
-                    <p className="text-sm text-muted-foreground">{selectedCustomer?.city}</p>
                   </div>
+                  <Button variant="outline" onClick={openCanvaSph}>
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Buka Template Canva
+                  </Button>
                 </div>
               </div>
               
-              <p className="text-sm text-muted-foreground">
-                Klik tombol di bawah untuk membuka template SPH di Canva. Data pelanggan akan digunakan untuk mengisi template.
-              </p>
+              <div className="grid gap-2">
+                <Label htmlFor="sph_link">Link SPH (Opsional)</Label>
+                <div className="flex gap-2">
+                  <Input 
+                    id="sph_link" 
+                    placeholder="https://www.canva.com/design/..." 
+                    value={sphLink}
+                    onChange={(e) => setSphLink(e.target.value)}
+                  />
+                  {sphLink && (
+                    <Button variant="ghost" size="icon" onClick={() => openSphLink(sphLink)}>
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Simpan link SPH yang sudah dibuat untuk akses cepat di kemudian hari
+                </p>
+              </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => handleSphDialogClose(false)}>
+              <Button variant="outline" onClick={() => setIsSphDialogOpen(false)}>
                 Batal
               </Button>
-              <Button onClick={openCanvaSph}>
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Buka Template Canva
+              <Button onClick={handleSaveSphLink} disabled={isSphSubmitting}>
+                {isSphSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Link2 className="mr-2 h-4 w-4" />
+                Simpan Link
               </Button>
             </DialogFooter>
           </DialogContent>

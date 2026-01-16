@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Camera, Palette, Printer, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Camera, Palette, Printer, Users, Loader2, Share2, Copy, Check } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -23,31 +23,15 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { useCalendarEvents, EventFormData, CalendarEvent } from "@/hooks/useCalendarEvents";
+import { useCustomers } from "@/hooks/useCustomers";
+import { useToast } from "@/hooks/use-toast";
 
 const DAYS = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 const MONTHS = [
   "Januari", "Februari", "Maret", "April", "Mei", "Juni",
   "Juli", "Agustus", "September", "Oktober", "November", "Desember"
 ];
-
-interface CalendarEvent {
-  id: string;
-  title: string;
-  school: string;
-  date: string;
-  time: string;
-  type: "meeting" | "photo" | "design" | "print";
-  notes?: string;
-}
-
-interface EventFormData {
-  title: string;
-  type: "meeting" | "photo" | "design" | "print" | "";
-  date: string;
-  time: string;
-  school: string;
-  notes: string;
-}
 
 const typeConfig = {
   meeting: { icon: Users, label: "Meeting", className: "bg-primary/15 text-primary" },
@@ -56,39 +40,27 @@ const typeConfig = {
   print: { icon: Printer, label: "Cetak", className: "bg-info/15 text-info" },
 };
 
-const mockCustomers = [
-  { id: "sma1", name: "SMA Negeri 1 Jakarta" },
-  { id: "smpazhar", name: "SMP Islam Al-Azhar" },
-  { id: "sdtar", name: "SD Tarakanita" },
-  { id: "gonzaga", name: "SMA Gonzaga" },
-];
-
-const initialMockEvents: CalendarEvent[] = [
-  { id: "1", title: "Meeting Proposal", school: "SMA Negeri 1 Jakarta", date: "2026-01-16", time: "10:00", type: "meeting" },
-  { id: "2", title: "Pemotretan Kelas XII", school: "SMP Islam Al-Azhar", date: "2026-01-17", time: "08:00", type: "photo" },
-  { id: "3", title: "Deadline Layout", school: "SD Tarakanita", date: "2026-01-18", time: "23:59", type: "design" },
-  { id: "4", title: "Kirim ke Percetakan", school: "SMA Gonzaga", date: "2026-01-20", time: "09:00", type: "print" },
-  { id: "5", title: "Meeting Review Desain", school: "SMA Negeri 1 Jakarta", date: "2026-01-20", time: "14:00", type: "meeting" },
-  { id: "6", title: "Pemotretan Guru", school: "SD Tarakanita", date: "2026-01-22", time: "09:00", type: "photo" },
-  { id: "7", title: "Deadline Final", school: "SMA Gonzaga", date: "2026-01-25", time: "23:59", type: "design" },
-];
-
 const emptyFormData: EventFormData = {
   title: "",
-  type: "",
+  type: "meeting",
   date: "",
   time: "",
-  school: "",
+  customer_id: "",
   notes: "",
 };
 
 export default function Kalender() {
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 0, 16));
-  const [view, setView] = useState<"month" | "week">("month");
+  const { events, loading, addEvent } = useCalendarEvents();
+  const { customers } = useCustomers();
+  const { toast } = useToast();
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [view, setView] = useState<"month" | "agenda">("month");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [events, setEvents] = useState<CalendarEvent[]>(initialMockEvents);
   const [formData, setFormData] = useState<EventFormData>(emptyFormData);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -97,19 +69,11 @@ export default function Kalender() {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
   const prevPeriod = () => {
-    if (view === "month") {
-      setCurrentDate(new Date(year, month - 1, 1));
-    } else {
-      setCurrentDate(new Date(currentDate.getTime() - 7 * 24 * 60 * 60 * 1000));
-    }
+    setCurrentDate(new Date(year, month - 1, 1));
   };
 
   const nextPeriod = () => {
-    if (view === "month") {
-      setCurrentDate(new Date(year, month + 1, 1));
-    } else {
-      setCurrentDate(new Date(currentDate.getTime() + 7 * 24 * 60 * 60 * 1000));
-    }
+    setCurrentDate(new Date(year, month + 1, 1));
   };
 
   const days: (number | null)[] = [];
@@ -135,24 +99,19 @@ export default function Kalender() {
     setSelectedDate(dateKey);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.title || !formData.type || !formData.date || !formData.time) {
       return;
     }
 
-    const newEvent: CalendarEvent = {
-      id: String(Date.now()),
-      title: formData.title,
-      type: formData.type as "meeting" | "photo" | "design" | "print",
-      date: formData.date,
-      time: formData.time,
-      school: formData.school,
-      notes: formData.notes,
-    };
+    setIsSubmitting(true);
+    const success = await addEvent(formData);
+    setIsSubmitting(false);
 
-    setEvents(prev => [...prev, newEvent]);
-    setFormData(emptyFormData);
-    setIsDialogOpen(false);
+    if (success) {
+      setFormData(emptyFormData);
+      setIsDialogOpen(false);
+    }
   };
 
   const handleDialogClose = (open: boolean) => {
@@ -161,6 +120,46 @@ export default function Kalender() {
       setFormData(emptyFormData);
     }
   };
+
+  // Get share URL (would be the public calendar URL in production)
+  const getShareUrl = () => {
+    return `${window.location.origin}/kalender-publik`;
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(getShareUrl());
+    setCopied(true);
+    toast({
+      title: "Link disalin",
+      description: "Link kalender publik berhasil disalin ke clipboard",
+    });
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Sort events by date for agenda view
+  const sortedEvents = [...events].sort((a, b) => {
+    const dateA = new Date(`${a.date}T${a.time}`);
+    const dateB = new Date(`${b.date}T${b.time}`);
+    return dateA.getTime() - dateB.getTime();
+  });
+
+  // Filter upcoming events (today and future)
+  const upcomingEvents = sortedEvents.filter(event => {
+    const eventDate = new Date(event.date);
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    return eventDate >= todayStart;
+  });
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="flex h-full items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
@@ -200,168 +199,218 @@ export default function Kalender() {
               Bulanan
             </Button>
             <Button
-              variant={view === "week" ? "default" : "outline"}
-              onClick={() => setView("week")}
+              variant={view === "agenda" ? "default" : "outline"}
+              onClick={() => setView("agenda")}
             >
-              Mingguan
+              Agenda
+            </Button>
+            <Button variant="outline" onClick={() => setIsShareDialogOpen(true)}>
+              <Share2 className="mr-2 h-4 w-4" />
+              Share
             </Button>
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-4">
-          {/* Calendar Grid */}
-          <div className="lg:col-span-3">
-            <div className="rounded-xl border border-border bg-card overflow-hidden">
-              {/* Day Headers */}
-              <div className="grid grid-cols-7 border-b border-border bg-muted/50">
-                {DAYS.map((day) => (
-                  <div
-                    key={day}
-                    className="px-2 py-3 text-center text-sm font-semibold text-muted-foreground"
-                  >
-                    {day}
-                  </div>
-                ))}
-              </div>
-
-              {/* Calendar Days */}
-              <div className="grid grid-cols-7">
-                {days.map((day, index) => {
-                  const dateKey = day ? getDateKey(day) : "";
-                  const events = day ? getEventsForDate(dateKey) : [];
-                  const isSelected = selectedDate === dateKey;
-
-                  return (
+        {view === "month" ? (
+          <div className="grid gap-6 lg:grid-cols-4">
+            {/* Calendar Grid */}
+            <div className="lg:col-span-3">
+              <div className="rounded-xl border border-border bg-card overflow-hidden">
+                {/* Day Headers */}
+                <div className="grid grid-cols-7 border-b border-border bg-muted/50">
+                  {DAYS.map((day) => (
                     <div
-                      key={index}
-                      onClick={() => day && handleDateClick(day)}
-                      className={cn(
-                        "min-h-[100px] border-b border-r border-border p-2 transition-colors",
-                        day && "cursor-pointer hover:bg-muted/30",
-                        isSelected && "bg-primary/5",
-                        !day && "bg-muted/20"
-                      )}
+                      key={day}
+                      className="px-2 py-3 text-center text-sm font-semibold text-muted-foreground"
                     >
-                      {day && (
-                        <>
-                          <div
-                            className={cn(
-                              "mb-1 flex h-7 w-7 items-center justify-center rounded-full text-sm font-medium",
-                              isToday(day) && "bg-primary text-primary-foreground"
-                            )}
-                          >
-                            {day}
-                          </div>
-                          <div className="space-y-1">
-                            {events.slice(0, 2).map((event) => {
-                              const config = typeConfig[event.type];
-                              return (
-                                <div
-                                  key={event.id}
-                                  className={cn(
-                                    "truncate rounded px-1.5 py-0.5 text-xs font-medium",
-                                    config.className
-                                  )}
-                                >
-                                  {event.title}
+                      {day}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Calendar Days */}
+                <div className="grid grid-cols-7">
+                  {days.map((day, index) => {
+                    const dateKey = day ? getDateKey(day) : "";
+                    const dayEvents = day ? getEventsForDate(dateKey) : [];
+                    const isSelected = selectedDate === dateKey;
+
+                    return (
+                      <div
+                        key={index}
+                        onClick={() => day && handleDateClick(day)}
+                        className={cn(
+                          "min-h-[100px] border-b border-r border-border p-2 transition-colors",
+                          day && "cursor-pointer hover:bg-muted/30",
+                          isSelected && "bg-primary/5",
+                          !day && "bg-muted/20"
+                        )}
+                      >
+                        {day && (
+                          <>
+                            <div
+                              className={cn(
+                                "mb-1 flex h-7 w-7 items-center justify-center rounded-full text-sm font-medium",
+                                isToday(day) && "bg-primary text-primary-foreground"
+                              )}
+                            >
+                              {day}
+                            </div>
+                            <div className="space-y-1">
+                              {dayEvents.slice(0, 2).map((event) => {
+                                const config = typeConfig[event.type];
+                                return (
+                                  <div
+                                    key={event.id}
+                                    className={cn(
+                                      "truncate rounded px-1.5 py-0.5 text-xs font-medium",
+                                      config.className
+                                    )}
+                                  >
+                                    {event.title}
+                                  </div>
+                                );
+                              })}
+                              {dayEvents.length > 2 && (
+                                <div className="text-xs text-muted-foreground">
+                                  +{dayEvents.length - 2} lainnya
                                 </div>
-                              );
-                            })}
-                            {events.length > 2 && (
-                              <div className="text-xs text-muted-foreground">
-                                +{events.length - 2} lainnya
-                              </div>
-                            )}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar - Event Details */}
-          <div className="space-y-4">
-            {/* Legend */}
-            <div className="rounded-xl border border-border bg-card p-4">
-              <h3 className="mb-3 font-semibold">Keterangan</h3>
-              <div className="space-y-2">
-                {Object.entries(typeConfig).map(([key, config]) => {
-                  const Icon = config.icon;
-                  return (
-                    <div key={key} className="flex items-center gap-2">
-                      <div className={cn("flex h-6 w-6 items-center justify-center rounded", config.className)}>
-                        <Icon className="h-3.5 w-3.5" />
+                              )}
+                            </div>
+                          </>
+                        )}
                       </div>
-                      <span className="text-sm">{config.label}</span>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
-            {/* Selected Date Events */}
-            {selectedDate && (
+            {/* Sidebar */}
+            <div className="space-y-4">
+              {/* Legend */}
               <div className="rounded-xl border border-border bg-card p-4">
-                <h3 className="mb-3 font-semibold">
-                  {new Date(selectedDate).toLocaleDateString("id-ID", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
+                <h3 className="mb-3 font-semibold">Keterangan</h3>
+                <div className="space-y-2">
+                  {Object.entries(typeConfig).map(([key, config]) => {
+                    const Icon = config.icon;
+                    return (
+                      <div key={key} className="flex items-center gap-2">
+                        <div className={cn("flex h-6 w-6 items-center justify-center rounded", config.className)}>
+                          <Icon className="h-3.5 w-3.5" />
+                        </div>
+                        <span className="text-sm">{config.label}</span>
+                      </div>
+                    );
                   })}
-                </h3>
-                <div className="space-y-3">
-                  {getEventsForDate(selectedDate).length > 0 ? (
-                    getEventsForDate(selectedDate).map((event) => {
-                      const config = typeConfig[event.type];
-                      const Icon = config.icon;
-                      return (
-                        <div
-                          key={event.id}
-                          className="rounded-lg border border-border p-3"
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg", config.className)}>
-                              <Icon className="h-4 w-4" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="font-medium">{event.title}</p>
-                              <p className="text-sm text-muted-foreground">{event.school}</p>
-                              <p className="mt-1 text-sm text-muted-foreground">{event.time}</p>
+                </div>
+              </div>
+
+              {/* Selected Date Events */}
+              {selectedDate && (
+                <div className="rounded-xl border border-border bg-card p-4">
+                  <h3 className="mb-3 font-semibold">
+                    {new Date(selectedDate).toLocaleDateString("id-ID", {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long",
+                    })}
+                  </h3>
+                  <div className="space-y-3">
+                    {getEventsForDate(selectedDate).length > 0 ? (
+                      getEventsForDate(selectedDate).map((event) => {
+                        const config = typeConfig[event.type];
+                        const Icon = config.icon;
+                        return (
+                          <div
+                            key={event.id}
+                            className="rounded-lg border border-border p-3"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg", config.className)}>
+                                <Icon className="h-4 w-4" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="font-medium">{event.title}</p>
+                                {event.customers?.name && (
+                                  <p className="text-sm text-muted-foreground">{event.customers.name}</p>
+                                )}
+                                <p className="mt-1 text-sm text-muted-foreground">{event.time}</p>
+                              </div>
                             </div>
                           </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Tidak ada jadwal</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Upcoming Events */}
+              <div className="rounded-xl border border-border bg-card p-4">
+                <h3 className="mb-3 font-semibold">Jadwal Terdekat</h3>
+                <div className="space-y-3">
+                  {upcomingEvents.slice(0, 5).map((event) => {
+                    const config = typeConfig[event.type];
+                    return (
+                      <div key={event.id} className="flex items-center gap-3">
+                        <Badge className={config.className}>{config.label}</Badge>
+                        <div className="flex-1 truncate">
+                          <p className="text-sm font-medium truncate">{event.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(event.date).toLocaleDateString("id-ID", { day: "numeric", month: "short" })} - {event.time}
+                          </p>
                         </div>
-                      );
-                    })
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Tidak ada jadwal</p>
+                      </div>
+                    );
+                  })}
+                  {upcomingEvents.length === 0 && (
+                    <p className="text-sm text-muted-foreground">Tidak ada jadwal mendatang</p>
                   )}
                 </div>
               </div>
-            )}
-
-            {/* Upcoming Events */}
-            <div className="rounded-xl border border-border bg-card p-4">
-              <h3 className="mb-3 font-semibold">Jadwal Terdekat</h3>
-              <div className="space-y-3">
-                {events.slice(0, 4).map((event) => {
+            </div>
+          </div>
+        ) : (
+          /* Agenda View */
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <div className="divide-y divide-border">
+              {upcomingEvents.length > 0 ? (
+                upcomingEvents.map((event) => {
                   const config = typeConfig[event.type];
+                  const Icon = config.icon;
                   return (
-                    <div key={event.id} className="flex items-center gap-3">
-                      <Badge className={config.className}>{config.label}</Badge>
-                      <div className="flex-1 truncate">
-                        <p className="text-sm font-medium truncate">{event.title}</p>
-                        <p className="text-xs text-muted-foreground">{event.date}</p>
+                    <div key={event.id} className="flex items-center gap-4 p-4 hover:bg-muted/30 transition-colors">
+                      <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", config.className)}>
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium">{event.title}</p>
+                        {event.customers?.name && (
+                          <p className="text-sm text-muted-foreground">{event.customers.name}</p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">
+                          {new Date(event.date).toLocaleDateString("id-ID", { weekday: "short", day: "numeric", month: "short" })}
+                        </p>
+                        <p className="text-sm text-muted-foreground">{event.time}</p>
                       </div>
                     </div>
                   );
-                })}
-              </div>
+                })
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Camera className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                  <h3 className="text-lg font-medium">Belum ada jadwal</h3>
+                  <p className="text-sm text-muted-foreground">Klik tombol "Tambah Jadwal" untuk menambahkan jadwal baru.</p>
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        )}
 
         {/* Add Event Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
@@ -422,17 +471,17 @@ export default function Kalender() {
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="school">Pelanggan (Opsional)</Label>
+                <Label htmlFor="customer">Pelanggan (Opsional)</Label>
                 <Select 
-                  value={formData.school} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, school: value }))}
+                  value={formData.customer_id} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, customer_id: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih sekolah" />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockCustomers.map(c => (
-                      <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                    {customers.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -453,9 +502,46 @@ export default function Kalender() {
               </Button>
               <Button 
                 onClick={handleSubmit} 
-                disabled={!formData.title || !formData.type || !formData.date || !formData.time}
+                disabled={!formData.title || !formData.type || !formData.date || !formData.time || isSubmitting}
               >
-                Simpan Jadwal
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Plus className="mr-2 h-4 w-4" />
+                Tambah Jadwal
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Share Dialog */}
+        <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Bagikan Kalender</DialogTitle>
+              <DialogDescription>
+                Bagikan link kalender publik ke klien atau sekolah. Mereka hanya bisa melihat tanpa bisa mengedit.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Link Kalender Publik</Label>
+                <div className="flex gap-2">
+                  <Input 
+                    value={getShareUrl()}
+                    readOnly
+                    className="bg-muted"
+                  />
+                  <Button variant="outline" onClick={handleCopyLink}>
+                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Link ini dapat diakses oleh siapa saja yang memilikinya. Pengguna hanya dapat melihat jadwal tanpa bisa mengubah.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setIsShareDialogOpen(false)}>
+                Tutup
               </Button>
             </DialogFooter>
           </DialogContent>

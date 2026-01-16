@@ -11,9 +11,15 @@ export interface Order {
   has_mou: boolean;
   has_spreadsheet: boolean;
   has_drive: boolean;
+  mou_link: string | null;
+  gmail_email: string | null;
+  gmail_password: string | null;
+  spreadsheet_link: string | null;
+  drive_link: string | null;
   wa_desc: string | null;
   notes: string | null;
   created_at: string;
+  updated_at: string;
   customers?: {
     name: string;
     pic_name: string;
@@ -90,9 +96,39 @@ export const useOrders = () => {
     }
   };
 
+  const updateOrder = async (id: string, updates: Partial<Order>) => {
+    try {
+      const { data, error } = await supabase
+        .from("orders")
+        .update(updates)
+        .eq("id", id)
+        .select(`*, customers(name, pic_name)`)
+        .single();
+
+      if (error) throw error;
+      setOrders(prev => prev.map(o => o.id === id ? data as Order : o));
+      toast({
+        title: "Berhasil",
+        description: "Order berhasil diperbarui",
+      });
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Gagal memperbarui order",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const updateOrderStatus = async (id: string, status: Order["status"]) => {
+    return updateOrder(id, { status });
+  };
+
   useEffect(() => {
     fetchOrders();
   }, []);
 
-  return { orders, loading, addOrder, refetch: fetchOrders };
+  return { orders, loading, addOrder, updateOrder, updateOrderStatus, refetch: fetchOrders };
 };
