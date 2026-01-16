@@ -102,9 +102,42 @@ export const useCustomers = () => {
     }
   };
 
+  const updateCustomer = async (id: string, formData: CustomerFormData) => {
+    try {
+      const { data, error } = await supabase
+        .from("customers")
+        .update({
+          name: formData.name,
+          pic_name: formData.pic_name,
+          phones: formData.phones.filter(p => p.trim() !== ""),
+          city: formData.city,
+          address: formData.address || null,
+          status: formData.status,
+        })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      setCustomers(prev => prev.map(c => c.id === id ? data as Customer : c));
+      toast({
+        title: "Berhasil",
+        description: "Pelanggan berhasil diperbarui",
+      });
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Gagal memperbarui pelanggan",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   useEffect(() => {
     fetchCustomers();
   }, []);
 
-  return { customers, loading, addCustomer, deleteCustomer, refetch: fetchCustomers };
+  return { customers, loading, addCustomer, deleteCustomer, updateCustomer, refetch: fetchCustomers };
 };
