@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -15,6 +15,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
@@ -34,6 +35,25 @@ const bottomItems = [
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut, roles } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/login');
+  };
+
+  const getUserInitials = () => {
+    if (!user?.email) return 'U';
+    return user.email.substring(0, 2).toUpperCase();
+  };
+
+  const getUserRole = () => {
+    if (roles.includes('admin')) return 'Admin';
+    if (roles.includes('owner')) return 'Owner';
+    if (roles.includes('staff')) return 'Staff';
+    return 'User';
+  };
 
   return (
     <aside
@@ -70,16 +90,16 @@ export function Sidebar() {
         {!collapsed ? (
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sidebar-accent">
-              <span className="text-sm font-medium text-sidebar-accent-foreground">SA</span>
+              <span className="text-sm font-medium text-sidebar-accent-foreground">{getUserInitials()}</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-sm font-medium text-sidebar-foreground">Sofyan Septiyadi</span>
-              <span className="text-xs text-sidebar-muted">Owner</span>
+              <span className="text-sm font-medium text-sidebar-foreground truncate max-w-[140px]">{user?.email || 'Guest'}</span>
+              <span className="text-xs text-sidebar-muted">{getUserRole()}</span>
             </div>
           </div>
         ) : (
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sidebar-accent">
-            <span className="text-sm font-medium text-sidebar-accent-foreground">SA</span>
+            <span className="text-sm font-medium text-sidebar-accent-foreground">{getUserInitials()}</span>
           </div>
         )}
       </div>
@@ -133,6 +153,7 @@ export function Sidebar() {
           );
         })}
         <button
+          onClick={handleLogout}
           className="sidebar-item w-full text-red-400 hover:bg-red-500/10 hover:text-red-300"
           title={collapsed ? "Keluar" : undefined}
         >
