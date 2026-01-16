@@ -17,6 +17,8 @@ export interface Invoice {
   customer_id: string;
   amount: number;
   due_date: string;
+  issue_date: string | null;
+  company_logo_url: string | null;
   status: "draft" | "sent" | "paid" | "overdue";
   items: any[];
   dp_date: string | null;
@@ -33,9 +35,10 @@ export interface Invoice {
 
 export interface InvoiceFormData {
   customer_id: string;
-  due_date: string;
+  issue_date: string;
   items: { description: string; qty: number; price: number }[];
   payment_terms: PaymentTerm[];
+  company_logo_url?: string;
 }
 
 export const useInvoices = () => {
@@ -83,9 +86,11 @@ export const useInvoices = () => {
           invoice_number: generateInvoiceNumber(),
           customer_id: formData.customer_id,
           amount: totalAmount,
-          due_date: formData.due_date,
+          issue_date: formData.issue_date,
+          due_date: formData.issue_date, // Keep for backward compatibility
           items: formData.items as any,
           payment_terms: formData.payment_terms as any,
+          company_logo_url: formData.company_logo_url || null,
           status: "draft",
         })
         .select(`*, customers(name, pic_name)`)
