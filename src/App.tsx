@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Pelanggan from "./pages/Pelanggan";
 import Order from "./pages/Order";
 import Kalender from "./pages/Kalender";
+import KalenderPublik from "./pages/KalenderPublik";
 import Invoice from "./pages/Invoice";
 import Pembayaran from "./pages/Pembayaran";
 import Gaji from "./pages/Gaji";
@@ -30,6 +31,7 @@ const App = () => (
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/kalender-publik" element={<KalenderPublik />} />
             
             {/* Protected routes */}
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
