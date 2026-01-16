@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Filter, MoreHorizontal, Phone, MapPin, Building, User, X } from "lucide-react";
+import { Plus, Search, Filter, MoreHorizontal, Phone, MapPin, Building, User, X, Loader2 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
@@ -30,26 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-
-interface Customer {
-  id: string;
-  name: string;
-  picName: string;
-  phones: string[];
-  city: string;
-  address: string;
-  status: "prospek" | "aktif" | "selesai";
-  createdAt: string;
-}
-
-interface CustomerFormData {
-  name: string;
-  picName: string;
-  phones: string[];
-  city: string;
-  address: string;
-  status: "prospek" | "aktif" | "selesai";
-}
+import { useCustomers, CustomerFormData } from "@/hooks/useCustomers";
 
 const statusConfig = {
   prospek: { label: "Prospek", className: "bg-warning/15 text-warning hover:bg-warning/20" },
@@ -57,62 +37,9 @@ const statusConfig = {
   selesai: { label: "Selesai", className: "bg-primary/15 text-primary hover:bg-primary/20" },
 };
 
-const initialMockCustomers: Customer[] = [
-  {
-    id: "1",
-    name: "SMA Negeri 1 Jakarta",
-    picName: "Bpk. Ahmad",
-    phones: ["08123456789", "08198765432"],
-    city: "Jakarta Selatan",
-    address: "Jl. Sudirman No. 123, Jakarta Selatan",
-    status: "aktif",
-    createdAt: "2025-12-01",
-  },
-  {
-    id: "2",
-    name: "SMP Islam Al-Azhar",
-    picName: "Ibu Sari",
-    phones: ["08567891234"],
-    city: "Jakarta Timur",
-    address: "Jl. Pemuda No. 45, Jakarta Timur",
-    status: "aktif",
-    createdAt: "2025-11-15",
-  },
-  {
-    id: "3",
-    name: "SD Tarakanita",
-    picName: "Bpk. Budi",
-    phones: ["08112233445"],
-    city: "Tangerang",
-    address: "Jl. BSD Green Office Park, Tangerang",
-    status: "selesai",
-    createdAt: "2025-10-20",
-  },
-  {
-    id: "4",
-    name: "SMA Gonzaga",
-    picName: "Ibu Dewi",
-    phones: ["08556677889", "02187654321"],
-    city: "Jakarta Pusat",
-    address: "Jl. Merdeka Barat No. 78, Jakarta Pusat",
-    status: "prospek",
-    createdAt: "2026-01-10",
-  },
-  {
-    id: "5",
-    name: "SMK Negeri 4 Bandung",
-    picName: "Bpk. Eko",
-    phones: ["08778899001"],
-    city: "Bandung",
-    address: "Jl. Asia Afrika No. 100, Bandung",
-    status: "prospek",
-    createdAt: "2026-01-12",
-  },
-];
-
 const emptyFormData: CustomerFormData = {
   name: "",
-  picName: "",
+  pic_name: "",
   phones: [""],
   city: "",
   address: "",
@@ -120,16 +47,17 @@ const emptyFormData: CustomerFormData = {
 };
 
 export default function Pelanggan() {
-  const [customers, setCustomers] = useState<Customer[]>(initialMockCustomers);
+  const { customers, loading, addCustomer, deleteCustomer } = useCustomers();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState<CustomerFormData>(emptyFormData);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const filteredCustomers = customers.filter((customer) => {
     const matchesSearch = customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       customer.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      customer.picName.toLowerCase().includes(searchQuery.toLowerCase());
+      customer.pic_name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || customer.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -151,33 +79,33 @@ export default function Pelanggan() {
     }
   };
 
-  const handleSubmit = () => {
-    if (!formData.name || !formData.picName || !formData.city) {
-      return;
+  const handleSubmit = async () => {
+    if (!formData.name || !formData.pic_name || !formData.city) return;
+    
+    setIsSubmitting(true);
+    const success = await addCustomer(formData);
+    setIsSubmitting(false);
+    
+    if (success) {
+      setFormData(emptyFormData);
+      setIsDialogOpen(false);
     }
-
-    const newCustomer: Customer = {
-      id: String(Date.now()),
-      name: formData.name,
-      picName: formData.picName,
-      phones: formData.phones.filter(p => p.trim() !== ""),
-      city: formData.city,
-      address: formData.address,
-      status: formData.status,
-      createdAt: new Date().toISOString().split("T")[0],
-    };
-
-    setCustomers(prev => [newCustomer, ...prev]);
-    setFormData(emptyFormData);
-    setIsDialogOpen(false);
   };
 
   const handleDialogClose = (open: boolean) => {
     setIsDialogOpen(open);
-    if (!open) {
-      setFormData(emptyFormData);
-    }
+    if (!open) setFormData(emptyFormData);
   };
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="flex h-full items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
@@ -252,7 +180,12 @@ export default function Pelanggan() {
                       <DropdownMenuItem>Edit</DropdownMenuItem>
                       <DropdownMenuItem>Buat SPH</DropdownMenuItem>
                       <DropdownMenuItem>Buat Order</DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">Hapus</DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className="text-destructive"
+                        onClick={() => deleteCustomer(customer.id)}
+                      >
+                        Hapus
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -260,7 +193,7 @@ export default function Pelanggan() {
                 <div className="space-y-3">
                   <div className="flex items-start gap-2">
                     <User className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                    <p className="text-sm font-medium text-foreground">{customer.picName}</p>
+                    <p className="text-sm font-medium text-foreground">{customer.pic_name}</p>
                   </div>
                   <div className="flex items-start gap-2">
                     <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />
@@ -272,7 +205,7 @@ export default function Pelanggan() {
                   <div className="flex items-start gap-2">
                     <Phone className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />
                     <div className="flex flex-wrap gap-2">
-                      {customer.phones.map((phone, idx) => (
+                      {customer.phones?.map((phone, idx) => (
                         <span key={idx} className="text-sm text-foreground">
                           {phone}
                         </span>
@@ -294,6 +227,14 @@ export default function Pelanggan() {
           })}
         </div>
 
+        {filteredCustomers.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <Building className="h-12 w-12 text-muted-foreground/50 mb-4" />
+            <h3 className="text-lg font-medium">Belum ada pelanggan</h3>
+            <p className="text-sm text-muted-foreground">Klik tombol "Tambah Pelanggan" untuk menambahkan pelanggan baru.</p>
+          </div>
+        )}
+
         {/* Add Customer Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
           <DialogContent className="sm:max-w-[500px]">
@@ -314,12 +255,12 @@ export default function Pelanggan() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="picName">Nama PIC *</Label>
+                <Label htmlFor="pic_name">Nama PIC *</Label>
                 <Input 
-                  id="picName" 
+                  id="pic_name" 
                   placeholder="Contoh: Bpk. Ahmad / Ibu Sari" 
-                  value={formData.picName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, picName: e.target.value }))}
+                  value={formData.pic_name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, pic_name: e.target.value }))}
                 />
               </div>
               <div className="grid gap-2">
@@ -389,7 +330,11 @@ export default function Pelanggan() {
               <Button variant="outline" onClick={() => handleDialogClose(false)}>
                 Batal
               </Button>
-              <Button onClick={handleSubmit} disabled={!formData.name || !formData.picName || !formData.city}>
+              <Button 
+                onClick={handleSubmit} 
+                disabled={!formData.name || !formData.pic_name || !formData.city || isSubmitting}
+              >
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <Plus className="mr-2 h-4 w-4" />
                 Simpan Pelanggan
               </Button>
