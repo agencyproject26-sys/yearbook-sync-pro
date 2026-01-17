@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Search, Download, Eye, Plus } from "lucide-react";
+import { useState, useRef } from "react";
+import { Search, Download, Eye, Plus, Loader2 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -22,74 +22,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-
-interface Payment {
-  id: string;
-  receiptNumber: string;
-  customer: string;
-  school: string;
-  amount: number;
-  description: string;
-  date: string;
-  invoiceId: string;
-}
-
-interface PaymentFormData {
-  invoiceId: string;
-  school: string;
-  customer: string;
-  amount: string;
-  date: string;
-  description: string;
-}
-
-const mockInvoices = [
-  { id: "INV-2026-001", name: "SMA Negeri 1 Jakarta", pic: "Bpk. Ahmad" },
-  { id: "INV-2026-002", name: "SMP Islam Al-Azhar", pic: "Ibu Sari" },
-  { id: "INV-2026-003", name: "SMA Gonzaga", pic: "Ibu Dewi" },
-];
-
-const initialMockPayments: Payment[] = [
-  {
-    id: "1",
-    receiptNumber: "KWT-2026-001",
-    customer: "Bpk. Ahmad",
-    school: "SMA Negeri 1 Jakarta",
-    amount: 22500000,
-    description: "Pembayaran DP 50% Buku Tahunan",
-    date: "2026-01-15",
-    invoiceId: "INV-2026-001",
-  },
-  {
-    id: "2",
-    receiptNumber: "KWT-2026-002",
-    customer: "Ibu Sari",
-    school: "SMP Islam Al-Azhar",
-    amount: 16000000,
-    description: "Pembayaran DP 50% Buku Tahunan",
-    date: "2026-01-14",
-    invoiceId: "INV-2026-002",
-  },
-  {
-    id: "3",
-    receiptNumber: "KWT-2026-003",
-    customer: "Ibu Sari",
-    school: "SMP Islam Al-Azhar",
-    amount: 16000000,
-    description: "Pelunasan 50% Buku Tahunan",
-    date: "2026-01-20",
-    invoiceId: "INV-2026-002",
-  },
-];
-
-const emptyFormData: PaymentFormData = {
-  invoiceId: "",
-  school: "",
-  customer: "",
-  amount: "",
-  date: "",
-  description: "",
-};
+import { usePayments, Payment, PaymentFormData } from "@/hooks/usePayments";
+import { useInvoices } from "@/hooks/useInvoices";
+import { ReceiptPreview } from "@/components/receipt/ReceiptPreview";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("id-ID", {
@@ -122,17 +59,42 @@ const numberToWords = (num: number): string => {
   return convertLessThanThousand(Math.floor(num / 1000000000)) + " miliar" + (num % 1000000000 !== 0 ? " " + numberToWords(num % 1000000000) : "");
 };
 
+interface FormData {
+  invoice_id: string;
+  school: string;
+  customer: string;
+  amount: string;
+  transfer_amount: string;
+  cash_amount: string;
+  date: string;
+  description: string;
+}
+
+const emptyFormData: FormData = {
+  invoice_id: "",
+  school: "",
+  customer: "",
+  amount: "",
+  transfer_amount: "",
+  cash_amount: "",
+  date: "",
+  description: "",
+};
+
 export default function Pembayaran() {
-  const [payments, setPayments] = useState<Payment[]>(initialMockPayments);
+  const { payments, loading, addPayment, refetch } = usePayments();
+  const { invoices } = useInvoices();
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
-  const [formData, setFormData] = useState<PaymentFormData>(emptyFormData);
+  const [formData, setFormData] = useState<FormData>(emptyFormData);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const downloadPreviewRef = useRef<HTMLDivElement>(null);
 
   const filteredPayments = payments.filter((payment) =>
-    payment.school.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    payment.receiptNumber.toLowerCase().includes(searchQuery.toLowerCase())
+    (payment.invoices?.customers?.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    payment.receipt_number.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const totalPayments = payments.reduce((sum, p) => sum + p.amount, 0);
@@ -143,37 +105,34 @@ export default function Pembayaran() {
   };
 
   const handleInvoiceSelect = (invoiceId: string) => {
-    const invoice = mockInvoices.find(i => i.id === invoiceId);
+    const invoice = invoices.find(i => i.id === invoiceId);
     if (invoice) {
       setFormData(prev => ({
         ...prev,
-        invoiceId,
-        school: invoice.name,
-        customer: invoice.pic,
+        invoice_id: invoiceId,
+        school: invoice.customers?.name || "",
+        customer: invoice.customers?.pic_name || "",
       }));
     }
   };
 
-  const handleSubmit = () => {
-    if (!formData.invoiceId || !formData.amount || !formData.date) {
+  const handleSubmit = async () => {
+    if (!formData.invoice_id || !formData.amount || !formData.date) {
       return;
     }
 
-    const receiptNumber = String(payments.length + 1).padStart(3, "0");
-    const newPayment: Payment = {
-      id: String(Date.now()),
-      receiptNumber: `KWT-2026-${receiptNumber}`,
-      customer: formData.customer,
-      school: formData.school,
+    const paymentData: PaymentFormData = {
+      invoice_id: formData.invoice_id,
       amount: parseFloat(formData.amount) || 0,
       description: formData.description,
-      date: formData.date,
-      invoiceId: formData.invoiceId,
+      payment_date: formData.date,
     };
 
-    setPayments(prev => [newPayment, ...prev]);
-    setFormData(emptyFormData);
-    setIsDialogOpen(false);
+    const success = await addPayment(paymentData);
+    if (success) {
+      setFormData(emptyFormData);
+      setIsDialogOpen(false);
+    }
   };
 
   const handleDialogClose = (open: boolean) => {
@@ -182,6 +141,54 @@ export default function Pembayaran() {
       setFormData(emptyFormData);
     }
   };
+
+  const getReceiptNumber = (payment: Payment): number => {
+    // Extract number from receipt_number like "KWT-2026-001" -> 1
+    const match = payment.receipt_number.match(/(\d+)$/);
+    return match ? parseInt(match[1], 10) : 1;
+  };
+
+  const handleDownloadPDF = async (payment: Payment) => {
+    setSelectedPayment(payment);
+    setIsDownloading(true);
+
+    // Wait for the preview to render
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    if (!downloadPreviewRef.current) {
+      setIsDownloading(false);
+      return;
+    }
+
+    try {
+      const canvas = await html2canvas(downloadPreviewRef.current, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a5",
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Kwitansi-${payment.receipt_number}.pdf`);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const thisMonthPayments = payments.filter(p => p.payment_date.startsWith(currentMonth));
 
   return (
     <MainLayout>
@@ -202,7 +209,7 @@ export default function Pembayaran() {
           </div>
           <div className="rounded-xl border border-border bg-card p-4">
             <p className="text-sm text-muted-foreground">Bulan Ini</p>
-            <p className="text-2xl font-bold text-success">{payments.filter(p => p.date.startsWith("2026-01")).length}</p>
+            <p className="text-2xl font-bold text-success">{thisMonthPayments.length}</p>
           </div>
           <div className="rounded-xl border border-border bg-card p-4">
             <p className="text-sm text-muted-foreground">Total Diterima</p>
@@ -225,48 +232,70 @@ export default function Pembayaran() {
 
         {/* Payments Table */}
         <div className="rounded-xl border border-border bg-card overflow-hidden">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>No. Kwitansi</th>
-                <th>Sekolah</th>
-                <th>Jumlah</th>
-                <th>Keterangan</th>
-                <th>Tanggal</th>
-                <th>Invoice</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredPayments.map((payment) => (
-                <tr key={payment.id}>
-                  <td className="font-medium">{payment.receiptNumber}</td>
-                  <td>
-                    <div>
-                      <p className="font-medium">{payment.school}</p>
-                      <p className="text-sm text-muted-foreground">{payment.customer}</p>
-                    </div>
-                  </td>
-                  <td className="font-semibold text-success">{formatCurrency(payment.amount)}</td>
-                  <td className="text-muted-foreground">{payment.description}</td>
-                  <td className="text-muted-foreground">{payment.date}</td>
-                  <td>
-                    <Badge variant="outline">{payment.invoiceId}</Badge>
-                  </td>
-                  <td>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => openPreview(payment)}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon">
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </td>
+          {loading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>No. Kwitansi</th>
+                  <th>Sekolah</th>
+                  <th>Jumlah</th>
+                  <th>Keterangan</th>
+                  <th>Tanggal</th>
+                  <th>Invoice</th>
+                  <th></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredPayments.map((payment) => (
+                  <tr key={payment.id}>
+                    <td className="font-medium">{payment.receipt_number}</td>
+                    <td>
+                      <div>
+                        <p className="font-medium">{payment.invoices?.customers?.name || "-"}</p>
+                        <p className="text-sm text-muted-foreground">{payment.invoices?.customers?.pic_name || "-"}</p>
+                      </div>
+                    </td>
+                    <td className="font-semibold text-success">{formatCurrency(payment.amount)}</td>
+                    <td className="text-muted-foreground">{payment.description || "-"}</td>
+                    <td className="text-muted-foreground">{payment.payment_date}</td>
+                    <td>
+                      <Badge variant="outline">{payment.invoices?.invoice_number || "-"}</Badge>
+                    </td>
+                    <td>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => openPreview(payment)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleDownloadPDF(payment)}
+                          disabled={isDownloading}
+                        >
+                          {isDownloading ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Download className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {filteredPayments.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="text-center py-8 text-muted-foreground">
+                      Belum ada data pembayaran
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
 
         {/* Add Payment Dialog */}
@@ -281,13 +310,15 @@ export default function Pembayaran() {
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label>Invoice *</Label>
-                <Select value={formData.invoiceId} onValueChange={handleInvoiceSelect}>
+                <Select value={formData.invoice_id} onValueChange={handleInvoiceSelect}>
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih invoice" />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockInvoices.map(inv => (
-                      <SelectItem key={inv.id} value={inv.id}>{inv.id} - {inv.name}</SelectItem>
+                    {invoices.map(inv => (
+                      <SelectItem key={inv.id} value={inv.id}>
+                        {inv.invoice_number} - {inv.customers?.name || "Unknown"}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -296,10 +327,30 @@ export default function Pembayaran() {
                 <Label>Jumlah Pembayaran *</Label>
                 <Input 
                   type="number" 
-                  placeholder="22500000" 
+                  placeholder="2400000" 
                   value={formData.amount}
                   onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
                 />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Via Transfer</Label>
+                  <Input 
+                    type="number" 
+                    placeholder="1000000" 
+                    value={formData.transfer_amount}
+                    onChange={(e) => setFormData(prev => ({ ...prev, transfer_amount: e.target.value }))}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Via Cash</Label>
+                  <Input 
+                    type="number" 
+                    placeholder="1400000" 
+                    value={formData.cash_amount}
+                    onChange={(e) => setFormData(prev => ({ ...prev, cash_amount: e.target.value }))}
+                  />
+                </div>
               </div>
               <div className="grid gap-2">
                 <Label>Tanggal Pembayaran *</Label>
@@ -310,9 +361,9 @@ export default function Pembayaran() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label>Keterangan</Label>
+                <Label>Keterangan (Untuk Pembayaran)</Label>
                 <Textarea 
-                  placeholder="Pembayaran DP 50% Buku Tahunan" 
+                  placeholder="Pembayaran Buku tahunan Sekolah Termin 1" 
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 />
@@ -324,7 +375,7 @@ export default function Pembayaran() {
               </Button>
               <Button 
                 onClick={handleSubmit} 
-                disabled={!formData.invoiceId || !formData.amount || !formData.date}
+                disabled={!formData.invoice_id || !formData.amount || !formData.date}
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Simpan Pembayaran
@@ -335,77 +386,59 @@ export default function Pembayaran() {
 
         {/* Receipt Preview Dialog */}
         <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-auto">
             <DialogHeader>
               <DialogTitle>Preview Kwitansi</DialogTitle>
             </DialogHeader>
             {selectedPayment && (
-              <div className="rounded-lg border border-border bg-white p-8 text-foreground">
-                {/* Header */}
-                <div className="mb-8 flex items-start justify-between border-b border-border pb-6">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-xl font-bold text-primary-foreground">
-                      CS
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-bold">PT CREATIVE SHOOT INDONESIA</h2>
-                      <p className="text-sm text-muted-foreground">Vendor Buku Tahunan Sekolah</p>
-                      <p className="text-sm text-muted-foreground">Jl. Raya Serpong No. 123, Tangerang Selatan</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Title */}
-                <div className="mb-6 text-center">
-                  <h1 className="text-2xl font-bold text-primary">KWITANSI</h1>
-                  <p className="text-sm text-muted-foreground">No: {selectedPayment.receiptNumber}</p>
-                </div>
-
-                {/* Content */}
-                <div className="mb-8 space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
-                    <p className="font-medium text-muted-foreground">Telah Terima Dari</p>
-                    <p className="col-span-2">: {selectedPayment.school}</p>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <p className="font-medium text-muted-foreground">Uang Sejumlah</p>
-                    <p className="col-span-2 font-bold">: {formatCurrency(selectedPayment.amount)}</p>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <p className="font-medium text-muted-foreground">Terbilang</p>
-                    <p className="col-span-2 italic">: {numberToWords(selectedPayment.amount)} rupiah</p>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <p className="font-medium text-muted-foreground">Untuk Pembayaran</p>
-                    <p className="col-span-2">: {selectedPayment.description}</p>
-                  </div>
-                </div>
-
-                {/* Footer */}
-                <div className="flex items-end justify-between border-t border-border pt-6">
-                  <p className="text-sm text-muted-foreground">Tanggal: {selectedPayment.date}</p>
-                  <div className="text-center">
-                    <p className="text-sm font-medium">Hormat kami,</p>
-                    <div className="my-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-lg font-bold text-primary-foreground mx-auto">
-                      CS
-                    </div>
-                    <p className="font-semibold">Sofyan Septiyadi</p>
-                    <p className="text-sm text-muted-foreground">Owner Project</p>
-                  </div>
-                </div>
+              <div className="overflow-auto border rounded-lg">
+                <ReceiptPreview
+                  receiptNumber={getReceiptNumber(selectedPayment)}
+                  receivedFrom={`${selectedPayment.invoices?.customers?.name || ""} ( ${selectedPayment.invoices?.customers?.pic_name || ""} )`}
+                  amountInWords={numberToWords(selectedPayment.amount) + " rupiah"}
+                  paymentDescription={selectedPayment.description || "Pembayaran"}
+                  transferAmount={0}
+                  cashAmount={selectedPayment.amount}
+                  totalAmount={selectedPayment.amount}
+                  date={selectedPayment.payment_date}
+                />
               </div>
             )}
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsPreviewOpen(false)}>
                 Tutup
               </Button>
-              <Button>
-                <Download className="mr-2 h-4 w-4" />
+              <Button 
+                onClick={() => selectedPayment && handleDownloadPDF(selectedPayment)}
+                disabled={isDownloading}
+              >
+                {isDownloading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
                 Download PDF
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Hidden Receipt Preview for PDF Download */}
+        {selectedPayment && (
+          <div className="fixed left-[-9999px] top-0">
+            <ReceiptPreview
+              ref={downloadPreviewRef}
+              receiptNumber={getReceiptNumber(selectedPayment)}
+              receivedFrom={`${selectedPayment.invoices?.customers?.name || ""} ( ${selectedPayment.invoices?.customers?.pic_name || ""} )`}
+              amountInWords={numberToWords(selectedPayment.amount) + " rupiah"}
+              paymentDescription={selectedPayment.description || "Pembayaran"}
+              transferAmount={0}
+              cashAmount={selectedPayment.amount}
+              totalAmount={selectedPayment.amount}
+              date={selectedPayment.payment_date}
+            />
+          </div>
+        )}
       </div>
     </MainLayout>
   );
