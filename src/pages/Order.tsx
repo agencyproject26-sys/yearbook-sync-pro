@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Filter, FileText, Link, FolderOpen, Mail, Loader2, Eye, EyeOff, ExternalLink, Trash2 } from "lucide-react";
+import { Search, Filter, FileText, Link, FolderOpen, Mail, Loader2, Eye, EyeOff, ExternalLink, Trash2, FileTextIcon, Pencil } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -86,7 +86,15 @@ export default function Order() {
   const [spreadsheetLink, setSpreadsheetLink] = useState("");
   const [isDriveDialogOpen, setIsDriveDialogOpen] = useState(false);
   const [driveLink, setDriveLink] = useState("");
+  const [isDocDialogOpen, setIsDocDialogOpen] = useState(false);
+  const [docLink, setDocLink] = useState("");
   const [isLinkSubmitting, setIsLinkSubmitting] = useState(false);
+  
+  // View/Edit dialog for order
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
+  const [editOrderData, setEditOrderData] = useState<{status: Order["status"]; wa_desc: string; notes: string; value: number}>({status: "proses", wa_desc: "", notes: "", value: 0});
   
   // Delete dialog
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -145,6 +153,15 @@ export default function Order() {
     setIsGmailDialogOpen(true);
   };
 
+  const handleGmailClick = (order: Order) => {
+    // If email and password exist, open Gmail login directly
+    if (order.gmail_email && order.gmail_password) {
+      window.open("https://mail.google.com", "_blank");
+    } else {
+      handleOpenGmailDialog(order);
+    }
+  };
+
   const handleSaveGmail = async () => {
     if (!editingOrder) return;
     setIsLinkSubmitting(true);
@@ -184,6 +201,49 @@ export default function Order() {
     setIsLinkSubmitting(false);
     setIsDriveDialogOpen(false);
     setEditingOrder(null);
+  };
+
+  // Google Doc Dialog handlers
+  const handleOpenDocDialog = (order: Order) => {
+    setEditingOrder(order);
+    setDocLink(order.google_doc_link || "");
+    setIsDocDialogOpen(true);
+  };
+
+  const handleSaveDocLink = async () => {
+    if (!editingOrder) return;
+    setIsLinkSubmitting(true);
+    await updateOrder(editingOrder.id, { google_doc_link: docLink || null });
+    setIsLinkSubmitting(false);
+    setIsDocDialogOpen(false);
+    setEditingOrder(null);
+  };
+
+  // View Order handlers
+  const handleViewOrder = (order: Order) => {
+    setViewingOrder(order);
+    setIsViewDialogOpen(true);
+  };
+
+  // Edit Order handlers
+  const handleEditOrder = (order: Order) => {
+    setViewingOrder(order);
+    setEditOrderData({
+      status: order.status,
+      wa_desc: order.wa_desc || "",
+      notes: order.notes || "",
+      value: order.value
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEditOrder = async () => {
+    if (!viewingOrder) return;
+    setIsLinkSubmitting(true);
+    await updateOrder(viewingOrder.id, editOrderData);
+    setIsLinkSubmitting(false);
+    setIsEditDialogOpen(false);
+    setViewingOrder(null);
   };
 
   const openExternalLink = (url: string) => {
@@ -285,8 +345,9 @@ export default function Order() {
                 <TableHead className="text-center">Akun Gmail</TableHead>
                 <TableHead className="text-center">Spreadsheet</TableHead>
                 <TableHead className="text-center">Google Drive</TableHead>
+                <TableHead className="text-center">Google Doc</TableHead>
                 <TableHead>Catatan</TableHead>
-                <TableHead className="w-[60px]"></TableHead>
+                <TableHead className="w-[100px] text-center">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -326,15 +387,28 @@ export default function Order() {
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleOpenGmailDialog(order)}
-                        className={order.gmail_email ? "border-success text-success" : ""}
-                      >
-                        <Mail className="mr-1 h-3 w-3" />
-                        {order.gmail_email ? "Lihat" : "Generate"} Akun
-                      </Button>
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleGmailClick(order)}
+                          className={order.gmail_email ? "border-success text-success" : ""}
+                        >
+                          <Mail className="mr-1 h-3 w-3" />
+                          {order.gmail_email ? "Buka" : "Generate"} Akun
+                        </Button>
+                        {order.gmail_email && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleOpenGmailDialog(order)}
+                            title="Edit akun Gmail"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="flex items-center justify-center gap-1">
@@ -380,6 +454,28 @@ export default function Order() {
                         )}
                       </div>
                     </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenDocDialog(order)}
+                        >
+                          <FileTextIcon className="mr-1 h-3 w-3" />
+                          {order.google_doc_link ? "Edit" : "Tambah"} Doc
+                        </Button>
+                        {order.google_doc_link && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-success"
+                            onClick={() => openExternalLink(order.google_doc_link!)}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <div className="max-w-[200px]">
                         {order.wa_desc && (
@@ -395,14 +491,33 @@ export default function Order() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => handleOpenDeleteDialog(order)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center justify-center gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => handleViewOrder(order)}
+                          title="Lihat detail"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => handleEditOrder(order)}
+                          title="Edit order"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => handleOpenDeleteDialog(order)}
+                          title="Hapus order"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -642,6 +757,164 @@ export default function Order() {
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsDriveDialogOpen(false)}>Batal</Button>
               <Button onClick={handleSaveDriveLink} disabled={isLinkSubmitting}>
+                {isLinkSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Simpan
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Google Doc Dialog */}
+        <Dialog open={isDocDialogOpen} onOpenChange={(open) => { setIsDocDialogOpen(open); if (!open) setEditingOrder(null); }}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Google Document</DialogTitle>
+              <DialogDescription>
+                Google Document untuk {editingOrder?.customers?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <Button variant="outline" className="w-full" onClick={() => openExternalLink("https://docs.google.com/document/create")}>
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Buat Dokumen Baru
+              </Button>
+              <div className="grid gap-2">
+                <Label>Link Google Document</Label>
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder="https://docs.google.com/document/d/..." 
+                    value={docLink}
+                    onChange={(e) => setDocLink(e.target.value)}
+                  />
+                  {docLink && (
+                    <Button variant="ghost" size="icon" onClick={() => openExternalLink(docLink)}>
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDocDialogOpen(false)}>Batal</Button>
+              <Button onClick={handleSaveDocLink} disabled={isLinkSubmitting}>
+                {isLinkSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Simpan
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* View Order Dialog */}
+        <Dialog open={isViewDialogOpen} onOpenChange={(open) => { setIsViewDialogOpen(open); if (!open) setViewingOrder(null); }}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Detail Order</DialogTitle>
+              <DialogDescription>
+                {viewingOrder?.order_number} - {viewingOrder?.customers?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Pelanggan</p>
+                  <p className="font-medium">{viewingOrder?.customers?.name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <Badge className={statusConfig[viewingOrder?.status || "proses"].className}>
+                    {statusConfig[viewingOrder?.status || "proses"].label}
+                  </Badge>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Nilai Order</p>
+                  <p className="font-medium">{formatCurrency(viewingOrder?.value || 0)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Tanggal Dibuat</p>
+                  <p className="font-medium">{viewingOrder?.created_at ? new Date(viewingOrder.created_at).toLocaleDateString("id-ID") : "-"}</p>
+                </div>
+              </div>
+              {viewingOrder?.gmail_email && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Akun Gmail</p>
+                  <p className="font-medium">{viewingOrder.gmail_email}</p>
+                </div>
+              )}
+              {viewingOrder?.wa_desc && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Deskripsi WA</p>
+                  <p className="text-sm">{viewingOrder.wa_desc}</p>
+                </div>
+              )}
+              {viewingOrder?.notes && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Catatan</p>
+                  <p className="text-sm">{viewingOrder.notes}</p>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>Tutup</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Order Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={(open) => { setIsEditDialogOpen(open); if (!open) setViewingOrder(null); }}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Edit Order</DialogTitle>
+              <DialogDescription>
+                {viewingOrder?.order_number} - {viewingOrder?.customers?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Status</Label>
+                  <Select value={editOrderData.status} onValueChange={(value: Order["status"]) => setEditOrderData(prev => ({ ...prev, status: value }))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="proses">Proses</SelectItem>
+                      <SelectItem value="desain">Desain</SelectItem>
+                      <SelectItem value="cetak">Cetak</SelectItem>
+                      <SelectItem value="selesai">Selesai</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Nilai Order (Rp)</Label>
+                  <Input 
+                    type="number"
+                    value={editOrderData.value || ""}
+                    onChange={(e) => setEditOrderData(prev => ({ ...prev, value: parseFloat(e.target.value) || 0 }))}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label>Deskripsi Grup WhatsApp</Label>
+                <Textarea
+                  rows={2}
+                  value={editOrderData.wa_desc}
+                  onChange={(e) => setEditOrderData(prev => ({ ...prev, wa_desc: e.target.value }))}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Catatan Internal</Label>
+                <Textarea
+                  rows={2}
+                  value={editOrderData.notes}
+                  onChange={(e) => setEditOrderData(prev => ({ ...prev, notes: e.target.value }))}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Batal</Button>
+              <Button onClick={handleSaveEditOrder} disabled={isLinkSubmitting}>
                 {isLinkSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Simpan
               </Button>
