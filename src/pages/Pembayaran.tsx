@@ -60,6 +60,7 @@ const numberToWords = (num: number): string => {
 };
 
 interface FormData {
+  receipt_number: string;
   invoice_id: string;
   school: string;
   customer: string;
@@ -71,6 +72,7 @@ interface FormData {
 }
 
 const emptyFormData: FormData = {
+  receipt_number: "",
   invoice_id: "",
   school: "",
   customer: "",
@@ -117,11 +119,12 @@ export default function Pembayaran() {
   };
 
   const handleSubmit = async () => {
-    if (!formData.invoice_id || !formData.amount || !formData.date) {
+    if (!formData.invoice_id || !formData.amount || !formData.date || !formData.receipt_number) {
       return;
     }
 
     const paymentData: PaymentFormData = {
+      receipt_number: formData.receipt_number,
       invoice_id: formData.invoice_id,
       amount: parseFloat(formData.amount) || 0,
       description: formData.description,
@@ -309,6 +312,15 @@ export default function Pembayaran() {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
+                <Label>No. Kwitansi *</Label>
+                <Input 
+                  type="number" 
+                  placeholder="1" 
+                  value={formData.receipt_number}
+                  onChange={(e) => setFormData(prev => ({ ...prev, receipt_number: e.target.value }))}
+                />
+              </div>
+              <div className="grid gap-2">
                 <Label>Invoice *</Label>
                 <Select value={formData.invoice_id} onValueChange={handleInvoiceSelect}>
                   <SelectTrigger>
@@ -375,7 +387,7 @@ export default function Pembayaran() {
               </Button>
               <Button 
                 onClick={handleSubmit} 
-                disabled={!formData.invoice_id || !formData.amount || !formData.date}
+                disabled={!formData.invoice_id || !formData.amount || !formData.date || !formData.receipt_number}
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Simpan Pembayaran
