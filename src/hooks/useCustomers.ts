@@ -8,6 +8,8 @@ export interface Customer {
   pic_name: string;
   phones: string[];
   city: string;
+  kecamatan: string | null;
+  kelurahan: string | null;
   address: string | null;
   status: "prospek" | "aktif" | "selesai";
   sph_link: string | null;
@@ -20,6 +22,8 @@ export interface CustomerFormData {
   pic_name: string;
   phones: string[];
   city: string;
+  kecamatan: string;
+  kelurahan: string;
   address: string;
   status: "prospek" | "aktif" | "selesai";
 }
@@ -66,6 +70,8 @@ export const useCustomers = () => {
           pic_name: formData.pic_name,
           phones: formData.phones.filter(p => p.trim() !== ""),
           city: formData.city,
+          kecamatan: formData.kecamatan || null,
+          kelurahan: formData.kelurahan || null,
           address: formData.address || null,
           status: formData.status,
         })
@@ -120,6 +126,8 @@ export const useCustomers = () => {
           pic_name: formData.pic_name,
           phones: formData.phones.filter(p => p.trim() !== ""),
           city: formData.city,
+          kecamatan: formData.kecamatan || null,
+          kelurahan: formData.kelurahan || null,
           address: formData.address || null,
           status: formData.status,
         })

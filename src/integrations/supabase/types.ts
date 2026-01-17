@@ -85,6 +85,8 @@ export type Database = {
           city: string
           created_at: string
           id: string
+          kecamatan: string | null
+          kelurahan: string | null
           name: string
           phones: string[] | null
           pic_name: string
@@ -97,6 +99,8 @@ export type Database = {
           city: string
           created_at?: string
           id?: string
+          kecamatan?: string | null
+          kelurahan?: string | null
           name: string
           phones?: string[] | null
           pic_name: string
@@ -109,6 +113,8 @@ export type Database = {
           city?: string
           created_at?: string
           id?: string
+          kecamatan?: string | null
+          kelurahan?: string | null
           name?: string
           phones?: string[] | null
           pic_name?: string
