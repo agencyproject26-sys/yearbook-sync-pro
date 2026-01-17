@@ -46,10 +46,25 @@ export const useInvoices = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const generateInvoiceNumber = () => {
+  const generateInvoiceNumber = async () => {
     const year = new Date().getFullYear();
-    const random = String(Math.floor(Math.random() * 1000)).padStart(3, "0");
-    return `INV-${year}-${random}`;
+    const month = String(new Date().getMonth() + 1).padStart(2, "0");
+    
+    // Get the count of invoices this year to generate sequential number
+    const { count, error } = await supabase
+      .from("invoices")
+      .select("*", { count: "exact", head: true })
+      .like("invoice_number", `INV/${year}%`);
+    
+    if (error) {
+      console.error("Error counting invoices:", error);
+      // Fallback to timestamp-based number
+      const fallbackNum = Date.now().toString().slice(-4);
+      return `INV/${year}/${month}/${fallbackNum}`;
+    }
+    
+    const nextNumber = String((count || 0) + 1).padStart(4, "0");
+    return `INV/${year}/${month}/${nextNumber}`;
   };
 
   const fetchInvoices = async () => {
@@ -79,11 +94,12 @@ export const useInvoices = () => {
   const addInvoice = async (formData: InvoiceFormData) => {
     try {
       const totalAmount = formData.items.reduce((sum, item) => sum + (item.qty * item.price), 0);
+      const invoiceNumber = await generateInvoiceNumber();
       
       const { data, error } = await supabase
         .from("invoices")
         .insert({
-          invoice_number: generateInvoiceNumber(),
+          invoice_number: invoiceNumber,
           customer_id: formData.customer_id,
           amount: totalAmount,
           issue_date: formData.issue_date,
