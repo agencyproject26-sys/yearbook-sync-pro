@@ -85,6 +85,24 @@ export default function Pelanggan() {
     return matchesSearch && matchesStatus;
   });
 
+  // Group customers by city and sort alphabetically
+  const groupedCustomers = filteredCustomers.reduce((acc, customer) => {
+    const city = customer.city || "Lainnya";
+    if (!acc[city]) {
+      acc[city] = [];
+    }
+    acc[city].push(customer);
+    return acc;
+  }, {} as Record<string, Customer[]>);
+
+  // Sort customers within each city alphabetically by name
+  Object.keys(groupedCustomers).forEach((city) => {
+    groupedCustomers[city].sort((a, b) => a.name.localeCompare(b.name, 'id'));
+  });
+
+  // Sort cities alphabetically
+  const sortedCities = Object.keys(groupedCustomers).sort((a, b) => a.localeCompare(b, 'id'));
+
   const handleAddPhone = () => {
     setFormData(prev => ({ ...prev, phones: [...prev.phones, ""] }));
   };
@@ -276,69 +294,85 @@ export default function Pelanggan() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredCustomers.map((customer) => {
-                const status = statusConfig[customer.status];
-                return (
-                  <TableRow key={customer.id}>
-                    <TableCell className="font-medium">{customer.name}</TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{customer.pic_name}</p>
-                        {customer.phones?.length > 0 && (
-                          <p className="text-xs text-muted-foreground">{customer.phones[0]}</p>
-                        )}
+              {sortedCities.map((city) => (
+                <>
+                  {/* City Header Row */}
+                  <TableRow key={`city-${city}`} className="bg-muted/50 hover:bg-muted/50">
+                    <TableCell colSpan={6} className="py-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-foreground">{city}</span>
+                        <Badge variant="secondary" className="text-xs">
+                          {groupedCustomers[city].length} pelanggan
+                        </Badge>
                       </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{customer.city}</TableCell>
-                    <TableCell>
-                      <Badge className={cn(status.className)}>{status.label}</Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleCreateSph(customer)}
-                        >
-                          <FileText className="mr-1 h-3 w-3" />
-                          {customer.sph_link ? "Edit" : "Buat"} SPH
-                        </Button>
-                        {customer.sph_link && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-success"
-                            onClick={() => openSphLink(customer.sph_link!)}
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEditCustomer(customer)}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            className="text-destructive"
-                            onClick={() => deleteCustomer(customer.id)}
-                          >
-                            Hapus
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                );
-              })}
+                  {/* Customer Rows */}
+                  {groupedCustomers[city].map((customer) => {
+                    const status = statusConfig[customer.status];
+                    return (
+                      <TableRow key={customer.id}>
+                        <TableCell className="font-medium pl-6">{customer.name}</TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{customer.pic_name}</p>
+                            {customer.phones?.length > 0 && (
+                              <p className="text-xs text-muted-foreground">{customer.phones[0]}</p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{customer.city}</TableCell>
+                        <TableCell>
+                          <Badge className={cn(status.className)}>{status.label}</Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleCreateSph(customer)}
+                            >
+                              <FileText className="mr-1 h-3 w-3" />
+                              {customer.sph_link ? "Edit" : "Buat"} SPH
+                            </Button>
+                            {customer.sph_link && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-success"
+                                onClick={() => openSphLink(customer.sph_link!)}
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleEditCustomer(customer)}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                className="text-destructive"
+                                onClick={() => deleteCustomer(customer.id)}
+                              >
+                                Hapus
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </>
+              ))}
             </TableBody>
           </Table>
           
