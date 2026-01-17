@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Search, Plus, Camera, Palette, Printer, AlertTriangle, User, Loader2 } from "lucide-react";
+import { useState, useRef } from "react";
+import { Search, Plus, Camera, Palette, Printer, AlertTriangle, User, Loader2, Eye, Pencil, Trash2, Download } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -23,8 +33,11 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { useSalaries, SalaryFormData } from "@/hooks/useSalaries";
+import { useSalaries, Salary, SalaryFormData } from "@/hooks/useSalaries";
 import { useOrders } from "@/hooks/useOrders";
+import { SalaryReceipt } from "@/components/salary/SalaryReceipt";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 const categoryConfig = {
   photographer: { icon: Camera, label: "Photographer", className: "bg-success/15 text-success" },
@@ -51,13 +64,19 @@ const emptyFormData: SalaryFormData = {
 };
 
 export default function Gaji() {
-  const { salaries, loading, addSalary } = useSalaries();
+  const { salaries, loading, addSalary, updateSalary, deleteSalary } = useSalaries();
   const { orders } = useOrders();
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState<SalaryFormData>(emptyFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingSalary, setEditingSalary] = useState<Salary | null>(null);
+  const [viewingSalary, setViewingSalary] = useState<Salary | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [deletingSalary, setDeletingSalary] = useState<Salary | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const receiptRef = useRef<HTMLDivElement>(null);
 
   const filteredSalaries = salaries.filter((salary) => {
     const matchesSearch = salary.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -79,18 +98,95 @@ export default function Gaji() {
     if (!formData.category || !formData.name || !formData.amount || !formData.payment_date) return;
     
     setIsSubmitting(true);
-    const success = await addSalary(formData);
+    let success = false;
+    
+    if (editingSalary) {
+      success = await updateSalary(editingSalary.id, formData);
+    } else {
+      success = await addSalary(formData);
+    }
+    
     setIsSubmitting(false);
     
     if (success) {
       setFormData(emptyFormData);
+      setEditingSalary(null);
       setIsDialogOpen(false);
     }
   };
 
   const handleDialogClose = (open: boolean) => {
     setIsDialogOpen(open);
-    if (!open) setFormData(emptyFormData);
+    if (!open) {
+      setFormData(emptyFormData);
+      setEditingSalary(null);
+    }
+  };
+
+  const openEditDialog = (salary: Salary) => {
+    setEditingSalary(salary);
+    setFormData({
+      name: salary.name,
+      category: salary.category,
+      amount: salary.amount,
+      description: salary.description || "",
+      order_id: salary.order_id || "",
+      payment_date: salary.payment_date,
+    });
+    setIsDialogOpen(true);
+  };
+
+  const openViewDialog = (salary: Salary) => {
+    setViewingSalary(salary);
+    setIsViewDialogOpen(true);
+  };
+
+  const openDeleteDialog = (salary: Salary) => {
+    setDeletingSalary(salary);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!deletingSalary) return;
+    await deleteSalary(deletingSalary.id);
+    setIsDeleteDialogOpen(false);
+    setDeletingSalary(null);
+  };
+
+  const handleDownloadPDF = async (salary: Salary) => {
+    setViewingSalary(salary);
+    setIsViewDialogOpen(true);
+    
+    // Wait for dialog to render
+    setTimeout(async () => {
+      if (receiptRef.current) {
+        try {
+          const canvas = await html2canvas(receiptRef.current, {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: "#ffffff",
+          });
+          
+          const imgData = canvas.toDataURL("image/png");
+          const pdf = new jsPDF({
+            orientation: "landscape",
+            unit: "mm",
+            format: "a5",
+          });
+          
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const pdfHeight = pdf.internal.pageSize.getHeight();
+          
+          pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+          pdf.save(`Bukti_Gaji_${salary.name}_${salary.payment_date}.pdf`);
+        } catch (error) {
+          console.error("Error generating PDF:", error);
+        }
+      }
+      setIsViewDialogOpen(false);
+      setViewingSalary(null);
+    }, 500);
   };
 
   if (loading) {
@@ -184,6 +280,7 @@ export default function Gaji() {
                 <th>Keterangan</th>
                 <th>Order</th>
                 <th>Tanggal</th>
+                <th>Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -209,6 +306,46 @@ export default function Gaji() {
                       )}
                     </td>
                     <td className="text-muted-foreground">{salary.payment_date}</td>
+                    <td>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => openViewDialog(salary)}
+                          title="Lihat"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => openEditDialog(salary)}
+                          title="Edit"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => openDeleteDialog(salary)}
+                          title="Hapus"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleDownloadPDF(salary)}
+                          title="Download PDF"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
@@ -216,13 +353,13 @@ export default function Gaji() {
           </table>
         </div>
 
-        {/* Add Salary Dialog */}
+        {/* Add/Edit Salary Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle>Catat Gaji / Biaya</DialogTitle>
+              <DialogTitle>{editingSalary ? "Edit Gaji / Biaya" : "Catat Gaji / Biaya"}</DialogTitle>
               <DialogDescription>
-                Masukkan data pembayaran gaji atau biaya operasional.
+                {editingSalary ? "Perbarui data pembayaran gaji atau biaya operasional." : "Masukkan data pembayaran gaji atau biaya operasional."}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -304,12 +441,52 @@ export default function Gaji() {
                 disabled={!formData.category || !formData.name || !formData.amount || !formData.payment_date || isSubmitting}
               >
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                <Plus className="mr-2 h-4 w-4" />
-                Simpan
+                {editingSalary ? <Pencil className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}
+                {editingSalary ? "Perbarui" : "Simpan"}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* View Salary Receipt Dialog */}
+        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+            <DialogHeader>
+              <DialogTitle>Bukti Pembayaran Gaji</DialogTitle>
+            </DialogHeader>
+            {viewingSalary && (
+              <div className="flex flex-col items-center">
+                <SalaryReceipt ref={receiptRef} salary={viewingSalary} />
+                <Button 
+                  className="mt-4" 
+                  onClick={() => handleDownloadPDF(viewingSalary)}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download PDF
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Hapus Data Gaji</AlertDialogTitle>
+              <AlertDialogDescription>
+                Apakah Anda yakin ingin menghapus data gaji untuk "{deletingSalary?.name}"? 
+                Tindakan ini tidak dapat dibatalkan.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Batal</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Hapus
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </MainLayout>
   );

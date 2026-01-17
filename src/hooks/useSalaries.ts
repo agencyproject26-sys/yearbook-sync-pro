@@ -82,9 +82,66 @@ export const useSalaries = () => {
     }
   };
 
+  const updateSalary = async (id: string, formData: SalaryFormData) => {
+    try {
+      const { data, error } = await supabase
+        .from("salaries")
+        .update({
+          name: formData.name,
+          category: formData.category,
+          amount: formData.amount,
+          description: formData.description || null,
+          order_id: formData.order_id || null,
+          payment_date: formData.payment_date,
+        })
+        .eq("id", id)
+        .select(`*, orders(order_number)`)
+        .single();
+
+      if (error) throw error;
+      setSalaries(prev => prev.map(s => s.id === id ? (data as Salary) : s));
+      toast({
+        title: "Berhasil",
+        description: "Data gaji berhasil diperbarui",
+      });
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Gagal memperbarui data gaji",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const deleteSalary = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("salaries")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      setSalaries(prev => prev.filter(s => s.id !== id));
+      toast({
+        title: "Berhasil",
+        description: "Data gaji berhasil dihapus",
+      });
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Gagal menghapus data gaji",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   useEffect(() => {
     fetchSalaries();
   }, []);
 
-  return { salaries, loading, addSalary, refetch: fetchSalaries };
+  return { salaries, loading, addSalary, updateSalary, deleteSalary, refetch: fetchSalaries };
 };
