@@ -20,6 +20,7 @@ export interface Payment {
 }
 
 export interface PaymentFormData {
+  receipt_number: string;
   invoice_id: string;
   amount: number;
   description: string;
@@ -31,11 +32,6 @@ export const usePayments = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const generateReceiptNumber = () => {
-    const year = new Date().getFullYear();
-    const random = String(Math.floor(Math.random() * 1000)).padStart(3, "0");
-    return `KWT-${year}-${random}`;
-  };
 
   const fetchPayments = async () => {
     try {
@@ -62,7 +58,7 @@ export const usePayments = () => {
       const { data, error } = await supabase
         .from("payments")
         .insert({
-          receipt_number: generateReceiptNumber(),
+          receipt_number: formData.receipt_number,
           invoice_id: formData.invoice_id,
           amount: formData.amount,
           description: formData.description || null,
