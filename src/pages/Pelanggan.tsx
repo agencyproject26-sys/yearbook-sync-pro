@@ -52,6 +52,8 @@ const emptyFormData: CustomerFormData = {
   pic_name: "",
   phones: [""],
   city: "",
+  kecamatan: "",
+  kelurahan: "",
   address: "",
   status: "prospek",
 };
@@ -146,6 +148,8 @@ export default function Pelanggan() {
       pic_name: customer.pic_name,
       phones: customer.phones?.length ? customer.phones : [""],
       city: customer.city,
+      kecamatan: customer.kecamatan || "",
+      kelurahan: customer.kelurahan || "",
       address: customer.address || "",
       status: customer.status,
     });
@@ -287,7 +291,7 @@ export default function Pelanggan() {
               <TableRow>
                 <TableHead>Nama Pelanggan</TableHead>
                 <TableHead>PIC</TableHead>
-                <TableHead>Kota</TableHead>
+                <TableHead>Wilayah</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-center">SPH</TableHead>
                 <TableHead className="w-[60px]"></TableHead>
@@ -317,11 +321,20 @@ export default function Pelanggan() {
                           <div>
                             <p className="font-medium">{customer.pic_name}</p>
                             {customer.phones?.length > 0 && (
-                              <p className="text-xs text-muted-foreground">{customer.phones[0]}</p>
+                              <p className="text-xs text-muted-foreground">{customer.phones.join(", ")}</p>
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="text-muted-foreground">{customer.city}</TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <p className="text-muted-foreground">{customer.city}</p>
+                            {(customer.kecamatan || customer.kelurahan) && (
+                              <p className="text-xs text-muted-foreground/70">
+                                {[customer.kecamatan, customer.kelurahan].filter(Boolean).join(", ")}
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <Badge className={cn(status.className)}>{status.label}</Badge>
                         </TableCell>
@@ -440,13 +453,33 @@ export default function Pelanggan() {
                 </Button>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="city">Kota *</Label>
+                <Label htmlFor="city">Kota / Kabupaten *</Label>
                 <Input 
                   id="city" 
                   placeholder="Contoh: Jakarta Selatan" 
                   value={formData.city}
                   onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
                 />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="kecamatan">Kecamatan</Label>
+                  <Input 
+                    id="kecamatan" 
+                    placeholder="Contoh: Kebayoran Baru" 
+                    value={formData.kecamatan}
+                    onChange={(e) => setFormData(prev => ({ ...prev, kecamatan: e.target.value }))}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="kelurahan">Kelurahan</Label>
+                  <Input 
+                    id="kelurahan" 
+                    placeholder="Contoh: Senayan" 
+                    value={formData.kelurahan}
+                    onChange={(e) => setFormData(prev => ({ ...prev, kelurahan: e.target.value }))}
+                  />
+                </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="address">Alamat Lengkap</Label>
@@ -541,12 +574,30 @@ export default function Pelanggan() {
                 </Button>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit_city">Kota *</Label>
+                <Label htmlFor="edit_city">Kota / Kabupaten *</Label>
                 <Input 
                   id="edit_city" 
                   value={editFormData.city}
                   onChange={(e) => setEditFormData(prev => ({ ...prev, city: e.target.value }))}
                 />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit_kecamatan">Kecamatan</Label>
+                  <Input 
+                    id="edit_kecamatan" 
+                    value={editFormData.kecamatan}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, kecamatan: e.target.value }))}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit_kelurahan">Kelurahan</Label>
+                  <Input 
+                    id="edit_kelurahan" 
+                    value={editFormData.kelurahan}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, kelurahan: e.target.value }))}
+                  />
+                </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit_address">Alamat Lengkap</Label>
