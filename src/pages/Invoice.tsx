@@ -1,5 +1,7 @@
-import { useState, useRef, useEffect } from "react";
-import { Search, Filter, MoreHorizontal, Download, Eye, Plus, Send, Loader2, Pencil, Trash2, Upload, ImageIcon, Printer, Settings, Check } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Search, Filter, MoreHorizontal, Download, Eye, Plus, Send, Loader2, Pencil, Trash2, Upload, ImageIcon, Printer, Settings, Check, FileDown } from "lucide-react";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -106,9 +108,12 @@ export default function Invoice() {
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingSignature, setIsUploadingSignature] = useState(false);
   
+  const [isDownloading, setIsDownloading] = useState(false);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const signatureInputRef = useRef<HTMLInputElement>(null);
   const invoicePreviewRef = useRef<HTMLDivElement>(null);
+  const downloadPreviewRef = useRef<HTMLDivElement>(null);
 
   // Initialize temp settings from company settings
   useEffect(() => {
@@ -344,6 +349,64 @@ export default function Invoice() {
     });
   };
 
+  // Download PDF function
+  const handleDownloadPDF = async (invoice: Invoice) => {
+    setIsDownloading(true);
+    setPreviewInvoice(invoice);
+    
+    // Wait for component to render
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    try {
+      const element = downloadPreviewRef.current;
+      if (!element) {
+        throw new Error("Preview element not found");
+      }
+      
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
+      
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+      
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgX = (pdfWidth - imgWidth * ratio) / 2;
+      const imgY = 0;
+      
+      pdf.addImage(imgData, "PNG", imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+      
+      const fileName = `${invoice.invoice_number.replace(/\//g, "-")}.pdf`;
+      pdf.save(fileName);
+      
+      toast({
+        title: "Berhasil",
+        description: `Invoice berhasil diunduh sebagai ${fileName}`,
+      });
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast({
+        title: "Error",
+        description: "Gagal membuat PDF. Silakan coba lagi.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   const handlePrintInvoice = () => {
     if (invoicePreviewRef.current) {
       const printWindow = window.open("", "_blank");
@@ -539,10 +602,15 @@ export default function Invoice() {
                         <Button 
                           variant="ghost" 
                           size="icon"
-                          onClick={() => handleOpenPreview(invoice)}
-                          title="Download / Print"
+                          onClick={() => handleDownloadPDF(invoice)}
+                          disabled={isDownloading}
+                          title="Download PDF"
                         >
-                          <Download className="h-4 w-4" />
+                          {isDownloading && previewInvoice?.id === invoice.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <FileDown className="h-4 w-4" />
+                          )}
                         </Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -552,14 +620,16 @@ export default function Invoice() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => handleOpenPreview(invoice)}>
+                              <Eye className="mr-2 h-4 w-4" />
                               Lihat Invoice
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleOpenTerminDialog(invoice)}>
-                              Edit Termin
+                            <DropdownMenuItem onClick={() => handleDownloadPDF(invoice)}>
+                              <FileDown className="mr-2 h-4 w-4" />
+                              Download PDF
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleSendInvoice(invoice)}>
-                              <Send className="mr-2 h-4 w-4" />
-                              Kirim ke Pelanggan
+                            <DropdownMenuItem onClick={() => handleOpenTerminDialog(invoice)}>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit Termin
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleMarkAsPaid(invoice)}>
                               <Check className="mr-2 h-4 w-4" />
@@ -920,13 +990,29 @@ export default function Invoice() {
               <Button variant="outline" onClick={() => setIsPreviewDialogOpen(false)}>
                 Tutup
               </Button>
-              <Button onClick={handlePrintInvoice}>
-                <Printer className="mr-2 h-4 w-4" />
-                Print / Download PDF
+              <Button onClick={() => previewInvoice && handleDownloadPDF(previewInvoice)} disabled={isDownloading}>
+                {isDownloading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <FileDown className="mr-2 h-4 w-4" />
+                )}
+                Download PDF
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Hidden PDF Renderer */}
+        <div className="fixed left-[-9999px] top-0" aria-hidden="true">
+          {previewInvoice && (
+            <InvoicePreview 
+              ref={downloadPreviewRef} 
+              invoice={previewInvoice} 
+              logoUrl={companySettings?.logo_url}
+              signatureUrl={companySettings?.signature_url}
+            />
+          )}
+        </div>
 
         {/* Company Settings Dialog */}
         <Dialog open={isSettingsDialogOpen} onOpenChange={setIsSettingsDialogOpen}>
