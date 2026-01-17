@@ -6,13 +6,28 @@ import { RecentOrders } from "@/components/dashboard/RecentOrders";
 import { UpcomingSchedule } from "@/components/dashboard/UpcomingSchedule";
 import { MiniCalendar } from "@/components/dashboard/MiniCalendar";
 import { QuickStats } from "@/components/dashboard/QuickStats";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { useAuth } from "@/hooks/useAuth";
+import { format } from "date-fns";
+import { id as localeId } from "date-fns/locale";
+
+const formatShortCurrency = (value: number) => {
+  if (value >= 1000000000) return `Rp ${(value / 1000000000).toFixed(1)}M`;
+  if (value >= 1000000) return `Rp ${Math.round(value / 1000000)}jt`;
+  if (value >= 1000) return `Rp ${Math.round(value / 1000)}rb`;
+  return `Rp ${value}`;
+};
 
 export default function Dashboard() {
+  const { stats, loading } = useDashboardStats();
+  const { user } = useAuth();
+  const currentMonth = format(new Date(), "MMMM yyyy", { locale: localeId });
+
   return (
     <MainLayout>
       <Header 
         title="Dashboard" 
-        subtitle="Selamat datang kembali, Sofyan!"
+        subtitle={`Selamat datang kembali${user?.email ? `, ${user.email.split('@')[0]}` : ''}!`}
       />
 
       <div className="p-6">
@@ -20,45 +35,45 @@ export default function Dashboard() {
         <div className="mb-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 stagger-children">
           <StatCard
             title="Total Pelanggan"
-            value={124}
+            value={loading ? "-" : stats.totalCustomers}
             subtitle="dari bulan lalu"
             icon={Users}
             variant="primary"
-            trend={{ value: 12, isPositive: true }}
+            trend={stats.customerGrowth !== 0 ? { value: Math.abs(stats.customerGrowth), isPositive: stats.customerGrowth > 0 } : undefined}
           />
           <StatCard
             title="Order Aktif"
-            value={18}
+            value={loading ? "-" : stats.activeOrders}
             subtitle="sedang berjalan"
             icon={Package}
             variant="info"
           />
           <StatCard
             title="Jadwal Terdekat"
-            value={5}
+            value={loading ? "-" : stats.upcomingSchedules}
             subtitle="minggu ini"
             icon={Calendar}
             variant="success"
           />
           <StatCard
             title="Invoice Belum Dibayar"
-            value={8}
+            value={loading ? "-" : stats.unpaidInvoices}
             subtitle="menunggu"
             icon={AlertCircle}
             variant="warning"
           />
           <StatCard
             title="Total Pemasukan"
-            value="Rp 245M"
-            subtitle="Januari 2026"
+            value={loading ? "-" : formatShortCurrency(stats.totalIncome)}
+            subtitle={currentMonth}
             icon={Wallet}
             variant="success"
-            trend={{ value: 8, isPositive: true }}
+            trend={stats.incomeGrowth !== 0 ? { value: Math.abs(stats.incomeGrowth), isPositive: stats.incomeGrowth > 0 } : undefined}
           />
           <StatCard
             title="Total Gaji"
-            value="Rp 48M"
-            subtitle="Januari 2026"
+            value={loading ? "-" : formatShortCurrency(stats.totalSalaries)}
+            subtitle={currentMonth}
             icon={FileText}
             variant="default"
           />
@@ -76,9 +91,10 @@ export default function Dashboard() {
           <div className="space-y-6">
             <MiniCalendar />
             <QuickStats
-              income={245000000}
-              expenses={48000000}
-              profit={197000000}
+              income={stats.totalIncome}
+              expenses={stats.totalSalaries}
+              profit={stats.totalIncome - stats.totalSalaries}
+              loading={loading}
             />
           </div>
         </div>

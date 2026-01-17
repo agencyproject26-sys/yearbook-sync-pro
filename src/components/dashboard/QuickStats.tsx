@@ -1,12 +1,16 @@
 import { TrendingUp, TrendingDown } from "lucide-react";
+import { Link } from "react-router-dom";
+import { format } from "date-fns";
+import { id as localeId } from "date-fns/locale";
 
 interface QuickStatsProps {
   income: number;
   expenses: number;
   profit: number;
+  loading?: boolean;
 }
 
-export function QuickStats({ income, expenses, profit }: QuickStatsProps) {
+export function QuickStats({ income, expenses, profit, loading }: QuickStatsProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
@@ -16,10 +20,26 @@ export function QuickStats({ income, expenses, profit }: QuickStatsProps) {
     }).format(value);
   };
 
+  const currentMonth = format(new Date(), "MMMM yyyy", { locale: localeId });
+
+  if (loading) {
+    return (
+      <div className="rounded-xl border border-border bg-card p-6 animate-pulse">
+        <div className="h-6 w-40 bg-muted rounded mb-4" />
+        <div className="h-4 w-32 bg-muted rounded mb-6" />
+        <div className="space-y-4">
+          <div className="h-20 bg-muted rounded-lg" />
+          <div className="h-20 bg-muted rounded-lg" />
+          <div className="h-12 bg-muted rounded-lg" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-xl border border-border bg-card p-6">
       <h3 className="mb-4 text-lg font-semibold text-foreground">Ringkasan Keuangan</h3>
-      <p className="mb-6 text-sm text-muted-foreground">Periode: Januari 2026</p>
+      <p className="mb-6 text-sm text-muted-foreground">Periode: {currentMonth}</p>
 
       <div className="space-y-4">
         {/* Total Pemasukan */}
@@ -53,9 +73,9 @@ export function QuickStats({ income, expenses, profit }: QuickStatsProps) {
         </div>
       </div>
 
-      <button className="mt-4 w-full text-sm font-medium text-primary hover:underline">
+      <Link to="/laporan" className="mt-4 block w-full text-center text-sm font-medium text-primary hover:underline">
         Lihat Laporan Lengkap →
-      </button>
+      </Link>
     </div>
   );
 }
