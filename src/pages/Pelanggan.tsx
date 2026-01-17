@@ -333,6 +333,11 @@ export default function Pelanggan() {
                                 {[customer.kecamatan, customer.kelurahan].filter(Boolean).join(", ")}
                               </p>
                             )}
+                            {customer.address && (
+                              <p className="text-xs text-muted-foreground/60 mt-1">
+                                {customer.address}
+                              </p>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
