@@ -16,6 +16,7 @@ export interface Order {
   gmail_password: string | null;
   spreadsheet_link: string | null;
   drive_link: string | null;
+  google_doc_link: string | null;
   wa_desc: string | null;
   notes: string | null;
   created_at: string;
