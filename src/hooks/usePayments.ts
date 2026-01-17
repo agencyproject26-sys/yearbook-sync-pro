@@ -84,9 +84,65 @@ export const usePayments = () => {
     }
   };
 
+  const updatePayment = async (id: string, formData: PaymentFormData) => {
+    try {
+      const { data, error } = await supabase
+        .from("payments")
+        .update({
+          receipt_number: formData.receipt_number,
+          invoice_id: formData.invoice_id,
+          amount: formData.amount,
+          description: formData.description || null,
+          payment_date: formData.payment_date,
+        })
+        .eq("id", id)
+        .select(`*, invoices(invoice_number, customers(name, pic_name))`)
+        .single();
+
+      if (error) throw error;
+      setPayments(prev => prev.map(p => p.id === id ? data as Payment : p));
+      toast({
+        title: "Berhasil",
+        description: "Pembayaran berhasil diperbarui",
+      });
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Gagal memperbarui pembayaran",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const deletePayment = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("payments")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      setPayments(prev => prev.filter(p => p.id !== id));
+      toast({
+        title: "Berhasil",
+        description: "Pembayaran berhasil dihapus",
+      });
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Gagal menghapus pembayaran",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   useEffect(() => {
     fetchPayments();
   }, []);
 
-  return { payments, loading, addPayment, refetch: fetchPayments };
+  return { payments, loading, addPayment, updatePayment, deletePayment, refetch: fetchPayments };
 };

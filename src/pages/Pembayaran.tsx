@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Search, Download, Eye, Plus, Loader2 } from "lucide-react";
+import { Search, Download, Eye, Plus, Loader2, Pencil, Trash2 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -84,12 +94,14 @@ const emptyFormData: FormData = {
 };
 
 export default function Pembayaran() {
-  const { payments, loading, addPayment, refetch } = usePayments();
+  const { payments, loading, addPayment, updatePayment, deletePayment } = usePayments();
   const { invoices } = useInvoices();
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
   const [formData, setFormData] = useState<FormData>(emptyFormData);
   const [isDownloading, setIsDownloading] = useState(false);
   const downloadPreviewRef = useRef<HTMLDivElement>(null);
@@ -104,6 +116,27 @@ export default function Pembayaran() {
   const openPreview = (payment: Payment) => {
     setSelectedPayment(payment);
     setIsPreviewOpen(true);
+  };
+
+  const openEditDialog = (payment: Payment) => {
+    setEditingPayment(payment);
+    setFormData({
+      receipt_number: payment.receipt_number,
+      invoice_id: payment.invoice_id,
+      school: payment.invoices?.customers?.name || "",
+      customer: payment.invoices?.customers?.pic_name || "",
+      amount: String(payment.amount),
+      transfer_amount: "",
+      cash_amount: "",
+      date: payment.payment_date,
+      description: payment.description || "",
+    });
+    setIsDialogOpen(true);
+  };
+
+  const openDeleteDialog = (payment: Payment) => {
+    setSelectedPayment(payment);
+    setIsDeleteDialogOpen(true);
   };
 
   const handleInvoiceSelect = (invoiceId: string) => {
@@ -131,10 +164,27 @@ export default function Pembayaran() {
       payment_date: formData.date,
     };
 
-    const success = await addPayment(paymentData);
+    let success = false;
+    if (editingPayment) {
+      success = await updatePayment(editingPayment.id, paymentData);
+    } else {
+      success = await addPayment(paymentData);
+    }
+
     if (success) {
       setFormData(emptyFormData);
+      setEditingPayment(null);
       setIsDialogOpen(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedPayment) return;
+    
+    const success = await deletePayment(selectedPayment.id);
+    if (success) {
+      setIsDeleteDialogOpen(false);
+      setSelectedPayment(null);
     }
   };
 
@@ -142,20 +192,19 @@ export default function Pembayaran() {
     setIsDialogOpen(open);
     if (!open) {
       setFormData(emptyFormData);
+      setEditingPayment(null);
     }
   };
 
   const getReceiptNumber = (payment: Payment): number => {
-    // Extract number from receipt_number like "KWT-2026-001" -> 1
     const match = payment.receipt_number.match(/(\d+)$/);
-    return match ? parseInt(match[1], 10) : 1;
+    return match ? parseInt(match[1], 10) : parseInt(payment.receipt_number, 10) || 1;
   };
 
   const handleDownloadPDF = async (payment: Payment) => {
     setSelectedPayment(payment);
     setIsDownloading(true);
 
-    // Wait for the preview to render
     await new Promise(resolve => setTimeout(resolve, 500));
 
     if (!downloadPreviewRef.current) {
@@ -270,20 +319,33 @@ export default function Pembayaran() {
                     </td>
                     <td>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openPreview(payment)}>
+                        <Button variant="ghost" size="icon" onClick={() => openPreview(payment)} title="Lihat">
                           <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => openEditDialog(payment)} title="Edit">
+                          <Pencil className="h-4 w-4" />
                         </Button>
                         <Button 
                           variant="ghost" 
                           size="icon" 
                           onClick={() => handleDownloadPDF(payment)}
                           disabled={isDownloading}
+                          title="Download PDF"
                         >
-                          {isDownloading ? (
+                          {isDownloading && selectedPayment?.id === payment.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
                             <Download className="h-4 w-4" />
                           )}
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => openDeleteDialog(payment)}
+                          title="Hapus"
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </td>
@@ -301,20 +363,20 @@ export default function Pembayaran() {
           )}
         </div>
 
-        {/* Add Payment Dialog */}
+        {/* Add/Edit Payment Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle>Catat Pembayaran Baru</DialogTitle>
+              <DialogTitle>{editingPayment ? "Edit Pembayaran" : "Catat Pembayaran Baru"}</DialogTitle>
               <DialogDescription>
-                Buat kwitansi untuk pembayaran yang diterima.
+                {editingPayment ? "Ubah data kwitansi pembayaran." : "Buat kwitansi untuk pembayaran yang diterima."}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label>No. Kwitansi *</Label>
                 <Input 
-                  type="number" 
+                  type="text" 
                   placeholder="1" 
                   value={formData.receipt_number}
                   onChange={(e) => setFormData(prev => ({ ...prev, receipt_number: e.target.value }))}
@@ -390,11 +452,30 @@ export default function Pembayaran() {
                 disabled={!formData.invoice_id || !formData.amount || !formData.date || !formData.receipt_number}
               >
                 <Plus className="mr-2 h-4 w-4" />
-                Simpan Pembayaran
+                {editingPayment ? "Simpan Perubahan" : "Simpan Pembayaran"}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Hapus Kwitansi?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Apakah Anda yakin ingin menghapus kwitansi {selectedPayment?.receipt_number}? 
+                Tindakan ini tidak dapat dibatalkan.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Batal</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Hapus
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Receipt Preview Dialog */}
         <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
