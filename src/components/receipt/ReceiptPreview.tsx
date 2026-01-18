@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+import { forwardRef, useState, useEffect } from "react";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 
 interface ReceiptPreviewProps {
@@ -32,7 +32,19 @@ const formatDate = (dateString: string) => {
 
 export const ReceiptPreview = forwardRef<HTMLDivElement, ReceiptPreviewProps>(
   ({ receiptNumber, receivedFrom, amountInWords, paymentDescription, transferAmount, cashAmount, totalAmount, date }, ref) => {
-    const { settings } = useCompanySettings();
+    const { settings, getSignatureUrl } = useCompanySettings();
+    const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
+
+    // Fetch signed URL for signature
+    useEffect(() => {
+      const fetchSignature = async () => {
+        if (settings?.signature_url) {
+          const url = await getSignatureUrl(settings.signature_url);
+          setSignatureUrl(url);
+        }
+      };
+      fetchSignature();
+    }, [settings?.signature_url, getSignatureUrl]);
 
     return (
       <div 
@@ -114,9 +126,9 @@ export const ReceiptPreview = forwardRef<HTMLDivElement, ReceiptPreviewProps>(
 
           <div className="text-center">
             <p className="text-red-600 font-bold mb-2">CREATIVE SHOOT</p>
-            {settings?.signature_url ? (
+            {signatureUrl ? (
               <img 
-                src={settings.signature_url} 
+                src={signatureUrl} 
                 alt="Signature" 
                 className="h-12 mx-auto mb-2 object-contain"
               />

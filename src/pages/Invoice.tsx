@@ -85,7 +85,7 @@ const emptyPaymentTerm: PaymentTerm = {
 export default function Invoice() {
   const { invoices, loading, addInvoice, updateInvoice } = useInvoices();
   const { customers } = useCustomers();
-  const { settings: companySettings, uploadLogo, uploadSignature, saveSettings, loading: settingsLoading } = useCompanySettings();
+  const { settings: companySettings, uploadLogo, uploadSignature, saveSettings, getSignatureUrl, loading: settingsLoading } = useCompanySettings();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -107,6 +107,7 @@ export default function Invoice() {
   const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingSignature, setIsUploadingSignature] = useState(false);
+  const [signedSignatureUrl, setSignedSignatureUrl] = useState<string | null>(null);
   
   const [isDownloading, setIsDownloading] = useState(false);
   
@@ -124,6 +125,17 @@ export default function Invoice() {
       setSignaturePreview(companySettings.signature_url);
     }
   }, [companySettings]);
+
+  // Fetch signed URL for private signature bucket
+  useEffect(() => {
+    const fetchSignedUrl = async () => {
+      if (companySettings?.signature_url) {
+        const url = await getSignatureUrl(companySettings.signature_url);
+        setSignedSignatureUrl(url);
+      }
+    };
+    fetchSignedUrl();
+  }, [companySettings?.signature_url, getSignatureUrl]);
 
   const filteredInvoices = invoices.filter((invoice) => {
     const matchesSearch =
@@ -981,7 +993,7 @@ export default function Invoice() {
                     ref={invoicePreviewRef} 
                     invoice={previewInvoice} 
                     logoUrl={companySettings?.logo_url}
-                    signatureUrl={companySettings?.signature_url}
+                    signatureUrl={signedSignatureUrl}
                   />
                 </div>
               )}
@@ -1009,7 +1021,7 @@ export default function Invoice() {
               ref={downloadPreviewRef} 
               invoice={previewInvoice} 
               logoUrl={companySettings?.logo_url}
-              signatureUrl={companySettings?.signature_url}
+              signatureUrl={signedSignatureUrl}
             />
           )}
         </div>
