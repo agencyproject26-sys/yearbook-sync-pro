@@ -26,7 +26,9 @@ export const useCompanySettings = () => {
       if (error) throw error;
       setSettings(data);
     } catch (error: any) {
-      console.error("Error fetching company settings:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error fetching company settings:", error);
+      }
     } finally {
       setLoading(false);
     }
@@ -49,7 +51,9 @@ export const useCompanySettings = () => {
 
       return urlData.publicUrl;
     } catch (error) {
-      console.error("Error uploading logo:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error uploading logo:", error);
+      }
       toast({
         title: "Error",
         description: "Gagal mengupload logo",
@@ -70,18 +74,41 @@ export const useCompanySettings = () => {
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from("company-signatures")
-        .getPublicUrl(fileName);
-
-      return urlData.publicUrl;
+      // Store just the file path for private bucket - signed URL will be generated on access
+      return fileName;
     } catch (error) {
-      console.error("Error uploading signature:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error uploading signature:", error);
+      }
       toast({
         title: "Error",
         description: "Gagal mengupload tanda tangan",
         variant: "destructive",
       });
+      return null;
+    }
+  };
+
+  // Get signed URL for private signature bucket (valid for 1 hour)
+  const getSignatureUrl = async (signaturePath: string | null): Promise<string | null> => {
+    if (!signaturePath) return null;
+    
+    // If it's already a full URL (legacy data), return as-is
+    if (signaturePath.startsWith('http')) {
+      return signaturePath;
+    }
+    
+    try {
+      const { data, error } = await supabase.storage
+        .from("company-signatures")
+        .createSignedUrl(signaturePath, 3600); // 1 hour expiry
+      
+      if (error) throw error;
+      return data.signedUrl;
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error("Error getting signature URL:", error);
+      }
       return null;
     }
   };
@@ -136,6 +163,7 @@ export const useCompanySettings = () => {
     uploadLogo,
     uploadSignature,
     saveSettings,
+    getSignatureUrl,
     refetch: fetchSettings,
   };
 };

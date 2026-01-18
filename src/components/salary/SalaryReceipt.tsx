@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+import { forwardRef, useState, useEffect } from "react";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { Camera, Palette, Printer, AlertTriangle } from "lucide-react";
 
@@ -55,8 +55,20 @@ const formatDate = (dateString: string) => {
 
 export const SalaryReceipt = forwardRef<HTMLDivElement, SalaryReceiptProps>(
   ({ salary }, ref) => {
-    const { settings } = useCompanySettings();
+    const { settings, getSignatureUrl } = useCompanySettings();
+    const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
     const amountInWords = numberToWords(salary.amount).trim() + ' Rupiah';
+
+    // Fetch signed URL for signature
+    useEffect(() => {
+      const fetchSignature = async () => {
+        if (settings?.signature_url) {
+          const url = await getSignatureUrl(settings.signature_url);
+          setSignatureUrl(url);
+        }
+      };
+      fetchSignature();
+    }, [settings?.signature_url, getSignatureUrl]);
 
     return (
       <div
@@ -136,9 +148,9 @@ export const SalaryReceipt = forwardRef<HTMLDivElement, SalaryReceiptProps>(
           <div className="text-center">
             <p className="text-sm mb-2">Surabaya, {formatDate(salary.payment_date)}</p>
             <p className="text-sm">Mengetahui</p>
-            {settings?.signature_url ? (
+            {signatureUrl ? (
               <img
-                src={settings.signature_url}
+                src={signatureUrl}
                 alt="Tanda Tangan"
                 className="h-14 w-auto mx-auto object-contain"
                 crossOrigin="anonymous"
