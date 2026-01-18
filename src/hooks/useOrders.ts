@@ -13,7 +13,6 @@ export interface Order {
   has_drive: boolean;
   mou_link: string | null;
   gmail_email: string | null;
-  gmail_password: string | null;
   spreadsheet_link: string | null;
   drive_link: string | null;
   google_doc_link: string | null;

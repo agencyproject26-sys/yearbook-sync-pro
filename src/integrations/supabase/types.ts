@@ -192,7 +192,6 @@ export type Database = {
           customer_id: string
           drive_link: string | null
           gmail_email: string | null
-          gmail_password: string | null
           google_doc_link: string | null
           has_drive: boolean | null
           has_mou: boolean | null
@@ -212,7 +211,6 @@ export type Database = {
           customer_id: string
           drive_link?: string | null
           gmail_email?: string | null
-          gmail_password?: string | null
           google_doc_link?: string | null
           has_drive?: boolean | null
           has_mou?: boolean | null
@@ -232,7 +230,6 @@ export type Database = {
           customer_id?: string
           drive_link?: string | null
           gmail_email?: string | null
-          gmail_password?: string | null
           google_doc_link?: string | null
           has_drive?: boolean | null
           has_mou?: boolean | null
