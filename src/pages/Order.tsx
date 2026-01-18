@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Filter, FileText, Link, FolderOpen, Mail, Loader2, Eye, EyeOff, ExternalLink, Trash2, FileTextIcon, Pencil } from "lucide-react";
+import { Search, Filter, FileText, Link, FolderOpen, Mail, Loader2, Eye, ExternalLink, Trash2, FileTextIcon, Pencil } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -80,8 +80,6 @@ export default function Order() {
   const [mouLink, setMouLink] = useState("");
   const [isGmailDialogOpen, setIsGmailDialogOpen] = useState(false);
   const [gmailEmail, setGmailEmail] = useState("");
-  const [gmailPassword, setGmailPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [isSpreadsheetDialogOpen, setIsSpreadsheetDialogOpen] = useState(false);
   const [spreadsheetLink, setSpreadsheetLink] = useState("");
   const [isDriveDialogOpen, setIsDriveDialogOpen] = useState(false);
@@ -149,13 +147,12 @@ export default function Order() {
   const handleOpenGmailDialog = (order: Order) => {
     setEditingOrder(order);
     setGmailEmail(order.gmail_email || "");
-    setGmailPassword(order.gmail_password || "");
     setIsGmailDialogOpen(true);
   };
 
   const handleGmailClick = (order: Order) => {
-    // If email and password exist, open Gmail login directly
-    if (order.gmail_email && order.gmail_password) {
+    // If email exists, open Gmail login directly
+    if (order.gmail_email) {
       window.open("https://mail.google.com", "_blank");
     } else {
       handleOpenGmailDialog(order);
@@ -165,7 +162,7 @@ export default function Order() {
   const handleSaveGmail = async () => {
     if (!editingOrder) return;
     setIsLinkSubmitting(true);
-    await updateOrder(editingOrder.id, { gmail_email: gmailEmail || null, gmail_password: gmailPassword || null });
+    await updateOrder(editingOrder.id, { gmail_email: gmailEmail || null });
     setIsLinkSubmitting(false);
     setIsGmailDialogOpen(false);
     setEditingOrder(null);
@@ -655,24 +652,9 @@ export default function Order() {
                   onChange={(e) => setGmailEmail(e.target.value)}
                 />
               </div>
-              <div className="grid gap-2">
-                <Label>Password</Label>
-                <div className="flex gap-2">
-                  <Input 
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Password" 
-                    value={gmailPassword}
-                    onChange={(e) => setGmailPassword(e.target.value)}
-                  />
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </div>
+              <p className="text-sm text-muted-foreground">
+                Masukkan alamat email Gmail yang digunakan untuk proyek ini.
+              </p>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsGmailDialogOpen(false)}>Batal</Button>
