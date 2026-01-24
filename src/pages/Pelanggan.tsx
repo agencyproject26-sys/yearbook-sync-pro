@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Filter, MoreHorizontal, X, Loader2, FileText, ExternalLink, Pencil, Link2 } from "lucide-react";
+import { Plus, Search, Filter, MoreHorizontal, X, Loader2, FileText, ExternalLink, Pencil, Link2, Copy } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -233,6 +233,37 @@ export default function Pelanggan() {
     window.open(link, "_blank");
   };
 
+  const openWhatsApp = async (waPhone: string, displayPhone: string) => {
+    // Some networks/browsers block WhatsApp web domains (wa.me / web.whatsapp.com / api.whatsapp.com).
+    // We'll try to open the installed app first, then fall back to wa.me, and always provide a copy action.
+    try {
+      // Attempt to open WhatsApp app (mobile/desktop). If not available, nothing happens.
+      window.location.href = `whatsapp://send?phone=${waPhone}`;
+    } catch {
+      // ignore
+    }
+
+    // Fallback to web after a short delay (still may be blocked by user's network)
+    window.setTimeout(() => {
+      window.open(`https://wa.me/${waPhone}`, "_blank", "noopener,noreferrer");
+    }, 400);
+
+    // Provide quick way to continue if WhatsApp is blocked
+    try {
+      await navigator.clipboard.writeText(displayPhone);
+      toast({
+        title: "Nomor disalin",
+        description: "Jika WhatsApp diblokir jaringan/browser, buka WhatsApp lalu paste nomor ini.",
+      });
+    } catch {
+      toast({
+        title: "WhatsApp terblokir",
+        description: "Sepertinya domain WhatsApp diblokir. Coba pakai WhatsApp Desktop/Mobile, atau copy nomor secara manual.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <MainLayout>
@@ -331,16 +362,35 @@ export default function Pelanggan() {
                                       ? cleanPhone 
                                       : '62' + cleanPhone;
                                   return (
-                                    <a
-                                      key={idx}
-                                      href={`https://web.whatsapp.com/send?phone=${waPhone}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-xs text-primary hover:underline inline-flex items-center gap-1"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      📱 {phone}
-                                    </a>
+                                    <div key={idx} className="inline-flex items-center gap-1">
+                                      <Button
+                                        type="button"
+                                        variant="link"
+                                        className="h-auto p-0 text-xs text-primary"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openWhatsApp(waPhone, phone);
+                                        }}
+                                      >
+                                        📱 {phone}
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigator.clipboard
+                                            .writeText(phone)
+                                            .then(() => toast({ title: "Nomor disalin" }))
+                                            .catch(() => toast({ title: "Gagal menyalin", variant: "destructive" }));
+                                        }}
+                                        aria-label={`Copy nomor ${phone}`}
+                                      >
+                                        <Copy className="h-3 w-3" />
+                                      </Button>
+                                    </div>
                                   );
                                 })}
                               </div>
