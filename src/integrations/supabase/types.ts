@@ -90,6 +90,7 @@ export type Database = {
           name: string
           phones: string[] | null
           pic_name: string
+          pics: Json | null
           sph_link: string | null
           status: string
           updated_at: string
@@ -104,6 +105,7 @@ export type Database = {
           name: string
           phones?: string[] | null
           pic_name: string
+          pics?: Json | null
           sph_link?: string | null
           status?: string
           updated_at?: string
@@ -118,6 +120,7 @@ export type Database = {
           name?: string
           phones?: string[] | null
           pic_name?: string
+          pics?: Json | null
           sph_link?: string | null
           status?: string
           updated_at?: string
