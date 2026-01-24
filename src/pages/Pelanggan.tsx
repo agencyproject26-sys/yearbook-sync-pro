@@ -321,7 +321,29 @@ export default function Pelanggan() {
                           <div>
                             <p className="font-medium">{customer.pic_name}</p>
                             {customer.phones?.length > 0 && (
-                              <p className="text-xs text-muted-foreground">{customer.phones.join(", ")}</p>
+                              <div className="flex flex-wrap gap-1">
+                                {customer.phones.filter(phone => phone).map((phone, idx) => {
+                                  // Format phone for WhatsApp (remove leading 0, add 62 for Indonesia)
+                                  const cleanPhone = phone.replace(/\D/g, '');
+                                  const waPhone = cleanPhone.startsWith('0') 
+                                    ? '62' + cleanPhone.slice(1) 
+                                    : cleanPhone.startsWith('62') 
+                                      ? cleanPhone 
+                                      : '62' + cleanPhone;
+                                  return (
+                                    <a
+                                      key={idx}
+                                      href={`https://wa.me/${waPhone}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      📱 {phone}
+                                    </a>
+                                  );
+                                })}
+                              </div>
                             )}
                           </div>
                         </TableCell>
