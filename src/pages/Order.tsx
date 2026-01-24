@@ -339,10 +339,6 @@ export default function Order() {
                 <TableHead>Nama Pelanggan</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-center">MOU</TableHead>
-                <TableHead className="text-center">Akun Gmail</TableHead>
-                <TableHead className="text-center">Spreadsheet</TableHead>
-                <TableHead className="text-center">Google Drive</TableHead>
-                <TableHead className="text-center">Google Doc</TableHead>
                 <TableHead>Catatan</TableHead>
                 <TableHead className="w-[100px] text-center">Aksi</TableHead>
               </TableRow>
@@ -377,96 +373,6 @@ export default function Order() {
                             size="icon"
                             className="h-8 w-8 text-success"
                             onClick={() => openExternalLink(order.mou_link!)}
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleGmailClick(order)}
-                          className={order.gmail_email ? "border-success text-success" : ""}
-                        >
-                          <Mail className="mr-1 h-3 w-3" />
-                          {order.gmail_email ? "Buka" : "Generate"} Akun
-                        </Button>
-                        {order.gmail_email && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleOpenGmailDialog(order)}
-                            title="Edit akun Gmail"
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenSpreadsheetDialog(order)}
-                        >
-                          <Link className="mr-1 h-3 w-3" />
-                          {order.spreadsheet_link ? "Edit" : "Buat"} Spreadsheet
-                        </Button>
-                        {order.spreadsheet_link && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-success"
-                            onClick={() => openExternalLink(order.spreadsheet_link!)}
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenDriveDialog(order)}
-                        >
-                          <FolderOpen className="mr-1 h-3 w-3" />
-                          {order.drive_link ? "Edit" : "Generate"} Drive
-                        </Button>
-                        {order.drive_link && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-success"
-                            onClick={() => openExternalLink(order.drive_link!)}
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenDocDialog(order)}
-                        >
-                          <FileTextIcon className="mr-1 h-3 w-3" />
-                          {order.google_doc_link ? "Edit" : "Tambah"} Doc
-                        </Button>
-                        {order.google_doc_link && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-success"
-                            onClick={() => openExternalLink(order.google_doc_link!)}
                           >
                             <ExternalLink className="h-4 w-4" />
                           </Button>
