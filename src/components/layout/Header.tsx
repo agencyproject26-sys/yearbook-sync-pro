@@ -8,6 +8,8 @@ interface HeaderProps {
   showAddButton?: boolean;
   addButtonLabel?: string;
   onAddClick?: () => void;
+  showSearch?: boolean;
+  showNotifications?: boolean;
 }
 
 export function Header({ 
@@ -15,7 +17,9 @@ export function Header({
   subtitle, 
   showAddButton, 
   addButtonLabel = "Tambah Baru",
-  onAddClick 
+  onAddClick,
+  showSearch = true,
+  showNotifications = true
 }: HeaderProps) {
   return (
     <header className="flex flex-col gap-4 border-b border-border bg-card px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -28,22 +32,26 @@ export function Header({
 
       <div className="flex items-center gap-3">
         {/* Search */}
-        <div className="relative hidden md:block">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Cari..."
-            className="w-64 pl-9"
-          />
-        </div>
+        {showSearch && (
+          <div className="relative hidden md:block">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Cari..."
+              className="w-64 pl-9"
+            />
+          </div>
+        )}
 
         {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground">
-            3
-          </span>
-        </Button>
+        {showNotifications && (
+          <Button variant="ghost" size="icon" className="relative">
+            <Bell className="h-5 w-5" />
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground">
+              3
+            </span>
+          </Button>
+        )}
 
         {/* Add Button */}
         {showAddButton && (

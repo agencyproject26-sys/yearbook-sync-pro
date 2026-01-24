@@ -366,6 +366,8 @@ export default function Pelanggan() {
         showAddButton
         addButtonLabel="Tambah Pelanggan"
         onAddClick={() => setIsDialogOpen(true)}
+        showSearch={false}
+        showNotifications={false}
       />
 
       <div className="p-6">
