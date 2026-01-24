@@ -2,11 +2,17 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+export interface PIC {
+  name: string;
+  phones: string[];
+}
+
 export interface Customer {
   id: string;
   name: string;
   pic_name: string;
   phones: string[];
+  pics: PIC[];
   city: string;
   kecamatan: string | null;
   kelurahan: string | null;
@@ -19,8 +25,7 @@ export interface Customer {
 
 export interface CustomerFormData {
   name: string;
-  pic_name: string;
-  phones: string[];
+  pics: PIC[];
   city: string;
   kecamatan: string;
   kelurahan: string;
@@ -49,7 +54,18 @@ export const useCustomers = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setCustomers(data as Customer[]);
+      
+      // Transform data to ensure pics is always an array
+      const transformedData = (data || []).map((customer: any) => ({
+        ...customer,
+        pics: Array.isArray(customer.pics) && customer.pics.length > 0 
+          ? customer.pics 
+          : customer.pic_name 
+            ? [{ name: customer.pic_name, phones: customer.phones || [] }]
+            : []
+      }));
+      
+      setCustomers(transformedData as Customer[]);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -63,12 +79,19 @@ export const useCustomers = () => {
 
   const addCustomer = async (formData: CustomerFormData) => {
     try {
+      // Get the first PIC for backward compatibility
+      const firstPic = formData.pics[0] || { name: "", phones: [] };
+      
       const { data, error } = await supabase
         .from("customers")
         .insert({
           name: formData.name,
-          pic_name: formData.pic_name,
-          phones: formData.phones.filter(p => p.trim() !== ""),
+          pic_name: firstPic.name,
+          phones: firstPic.phones.filter(p => p.trim() !== ""),
+          pics: formData.pics.map(pic => ({
+            name: pic.name,
+            phones: pic.phones.filter(p => p.trim() !== "")
+          })),
           city: formData.city,
           kecamatan: formData.kecamatan || null,
           kelurahan: formData.kelurahan || null,
@@ -79,7 +102,13 @@ export const useCustomers = () => {
         .single();
 
       if (error) throw error;
-      setCustomers(prev => [data as Customer, ...prev]);
+      
+      const newCustomer = {
+        ...data,
+        pics: formData.pics
+      } as Customer;
+      
+      setCustomers(prev => [newCustomer, ...prev]);
       toast({
         title: "Berhasil",
         description: "Pelanggan baru berhasil ditambahkan",
@@ -119,12 +148,19 @@ export const useCustomers = () => {
 
   const updateCustomer = async (id: string, formData: CustomerFormData) => {
     try {
+      // Get the first PIC for backward compatibility
+      const firstPic = formData.pics[0] || { name: "", phones: [] };
+      
       const { data, error } = await supabase
         .from("customers")
         .update({
           name: formData.name,
-          pic_name: formData.pic_name,
-          phones: formData.phones.filter(p => p.trim() !== ""),
+          pic_name: firstPic.name,
+          phones: firstPic.phones.filter(p => p.trim() !== ""),
+          pics: formData.pics.map(pic => ({
+            name: pic.name,
+            phones: pic.phones.filter(p => p.trim() !== "")
+          })),
           city: formData.city,
           kecamatan: formData.kecamatan || null,
           kelurahan: formData.kelurahan || null,
@@ -136,7 +172,13 @@ export const useCustomers = () => {
         .single();
 
       if (error) throw error;
-      setCustomers(prev => prev.map(c => c.id === id ? data as Customer : c));
+      
+      const updatedCustomer = {
+        ...data,
+        pics: formData.pics
+      } as Customer;
+      
+      setCustomers(prev => prev.map(c => c.id === id ? updatedCustomer : c));
       toast({
         title: "Berhasil",
         description: "Pelanggan berhasil diperbarui",

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Filter, MoreHorizontal, X, Loader2, FileText, ExternalLink, Pencil, Link2, Copy } from "lucide-react";
+import { Plus, Search, Filter, MoreHorizontal, X, Loader2, FileText, ExternalLink, Pencil, Link2, Copy, User } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -37,9 +37,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { useCustomers, CustomerFormData, Customer } from "@/hooks/useCustomers";
+import { useCustomers, CustomerFormData, Customer, PIC } from "@/hooks/useCustomers";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Separator } from "@/components/ui/separator";
 
 const statusConfig = {
   prospek: { label: "Prospek", className: "bg-warning/15 text-warning hover:bg-warning/20" },
@@ -47,10 +48,14 @@ const statusConfig = {
   selesai: { label: "Selesai", className: "bg-primary/15 text-primary hover:bg-primary/20" },
 };
 
+const emptyPIC: PIC = {
+  name: "",
+  phones: [""],
+};
+
 const emptyFormData: CustomerFormData = {
   name: "",
-  pic_name: "",
-  phones: [""],
+  pics: [{ ...emptyPIC }],
   city: "",
   kecamatan: "",
   kelurahan: "",
@@ -80,9 +85,12 @@ export default function Pelanggan() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
   const filteredCustomers = customers.filter((customer) => {
+    const picsMatch = customer.pics?.some(pic => 
+      pic.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
     const matchesSearch = customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       customer.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      customer.pic_name.toLowerCase().includes(searchQuery.toLowerCase());
+      picsMatch;
     const matchesStatus = statusFilter === "all" || customer.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -105,25 +113,59 @@ export default function Pelanggan() {
   // Sort cities alphabetically
   const sortedCities = Object.keys(groupedCustomers).sort((a, b) => a.localeCompare(b, 'id'));
 
-  const handleAddPhone = () => {
-    setFormData(prev => ({ ...prev, phones: [...prev.phones, ""] }));
+  // PIC handlers for Add dialog
+  const handleAddPIC = () => {
+    setFormData(prev => ({ ...prev, pics: [...prev.pics, { ...emptyPIC }] }));
   };
 
-  const handlePhoneChange = (index: number, value: string) => {
-    const newPhones = [...formData.phones];
-    newPhones[index] = value;
-    setFormData(prev => ({ ...prev, phones: newPhones }));
-  };
-
-  const handleRemovePhone = (index: number) => {
-    if (formData.phones.length > 1) {
-      const newPhones = formData.phones.filter((_, i) => i !== index);
-      setFormData(prev => ({ ...prev, phones: newPhones }));
+  const handleRemovePIC = (picIndex: number) => {
+    if (formData.pics.length > 1) {
+      setFormData(prev => ({ ...prev, pics: prev.pics.filter((_, i) => i !== picIndex) }));
     }
   };
 
+  const handlePICNameChange = (picIndex: number, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      pics: prev.pics.map((pic, i) => i === picIndex ? { ...pic, name: value } : pic)
+    }));
+  };
+
+  const handleAddPhone = (picIndex: number) => {
+    setFormData(prev => ({
+      ...prev,
+      pics: prev.pics.map((pic, i) => i === picIndex ? { ...pic, phones: [...pic.phones, ""] } : pic)
+    }));
+  };
+
+  const handlePhoneChange = (picIndex: number, phoneIndex: number, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      pics: prev.pics.map((pic, i) => {
+        if (i !== picIndex) return pic;
+        const newPhones = [...pic.phones];
+        newPhones[phoneIndex] = value;
+        return { ...pic, phones: newPhones };
+      })
+    }));
+  };
+
+  const handleRemovePhone = (picIndex: number, phoneIndex: number) => {
+    setFormData(prev => ({
+      ...prev,
+      pics: prev.pics.map((pic, i) => {
+        if (i !== picIndex) return pic;
+        if (pic.phones.length > 1) {
+          return { ...pic, phones: pic.phones.filter((_, j) => j !== phoneIndex) };
+        }
+        return pic;
+      })
+    }));
+  };
+
   const handleSubmit = async () => {
-    if (!formData.name || !formData.pic_name || !formData.city) return;
+    const hasValidPIC = formData.pics.some(pic => pic.name.trim() !== "");
+    if (!formData.name || !hasValidPIC || !formData.city) return;
     
     setIsSubmitting(true);
     const success = await addCustomer(formData);
@@ -140,13 +182,67 @@ export default function Pelanggan() {
     if (!open) setFormData(emptyFormData);
   };
 
+  // PIC handlers for Edit dialog
+  const handleEditAddPIC = () => {
+    setEditFormData(prev => ({ ...prev, pics: [...prev.pics, { ...emptyPIC }] }));
+  };
+
+  const handleEditRemovePIC = (picIndex: number) => {
+    if (editFormData.pics.length > 1) {
+      setEditFormData(prev => ({ ...prev, pics: prev.pics.filter((_, i) => i !== picIndex) }));
+    }
+  };
+
+  const handleEditPICNameChange = (picIndex: number, value: string) => {
+    setEditFormData(prev => ({
+      ...prev,
+      pics: prev.pics.map((pic, i) => i === picIndex ? { ...pic, name: value } : pic)
+    }));
+  };
+
+  const handleEditAddPhone = (picIndex: number) => {
+    setEditFormData(prev => ({
+      ...prev,
+      pics: prev.pics.map((pic, i) => i === picIndex ? { ...pic, phones: [...pic.phones, ""] } : pic)
+    }));
+  };
+
+  const handleEditPhoneChange = (picIndex: number, phoneIndex: number, value: string) => {
+    setEditFormData(prev => ({
+      ...prev,
+      pics: prev.pics.map((pic, i) => {
+        if (i !== picIndex) return pic;
+        const newPhones = [...pic.phones];
+        newPhones[phoneIndex] = value;
+        return { ...pic, phones: newPhones };
+      })
+    }));
+  };
+
+  const handleEditRemovePhone = (picIndex: number, phoneIndex: number) => {
+    setEditFormData(prev => ({
+      ...prev,
+      pics: prev.pics.map((pic, i) => {
+        if (i !== picIndex) return pic;
+        if (pic.phones.length > 1) {
+          return { ...pic, phones: pic.phones.filter((_, j) => j !== phoneIndex) };
+        }
+        return pic;
+      })
+    }));
+  };
+
   // Handle Edit customer
   const handleEditCustomer = (customer: Customer) => {
     setEditingCustomer(customer);
     setEditFormData({
       name: customer.name,
-      pic_name: customer.pic_name,
-      phones: customer.phones?.length ? customer.phones : [""],
+      pics: customer.pics?.length > 0 
+        ? customer.pics.map(pic => ({ 
+            name: pic.name, 
+            phones: pic.phones?.length > 0 ? pic.phones : [""] 
+          }))
+        : [{ name: customer.pic_name || "", phones: customer.phones?.length > 0 ? customer.phones : [""] }],
       city: customer.city,
       kecamatan: customer.kecamatan || "",
       kelurahan: customer.kelurahan || "",
@@ -156,25 +252,9 @@ export default function Pelanggan() {
     setIsEditDialogOpen(true);
   };
 
-  const handleEditPhoneChange = (index: number, value: string) => {
-    const newPhones = [...editFormData.phones];
-    newPhones[index] = value;
-    setEditFormData(prev => ({ ...prev, phones: newPhones }));
-  };
-
-  const handleEditAddPhone = () => {
-    setEditFormData(prev => ({ ...prev, phones: [...prev.phones, ""] }));
-  };
-
-  const handleEditRemovePhone = (index: number) => {
-    if (editFormData.phones.length > 1) {
-      const newPhones = editFormData.phones.filter((_, i) => i !== index);
-      setEditFormData(prev => ({ ...prev, phones: newPhones }));
-    }
-  };
-
   const handleEditSubmit = async () => {
-    if (!editingCustomer || !editFormData.name || !editFormData.pic_name || !editFormData.city) return;
+    const hasValidPIC = editFormData.pics.some(pic => pic.name.trim() !== "");
+    if (!editingCustomer || !editFormData.name || !hasValidPIC || !editFormData.city) return;
     
     setIsEditSubmitting(true);
     const success = await updateCustomer(editingCustomer.id, editFormData);
@@ -234,21 +314,16 @@ export default function Pelanggan() {
   };
 
   const openWhatsApp = async (waPhone: string, displayPhone: string) => {
-    // Some networks/browsers block WhatsApp web domains (wa.me / web.whatsapp.com / api.whatsapp.com).
-    // We'll try to open the installed app first, then fall back to wa.me, and always provide a copy action.
     try {
-      // Attempt to open WhatsApp app (mobile/desktop). If not available, nothing happens.
       window.location.href = `whatsapp://send?phone=${waPhone}`;
     } catch {
       // ignore
     }
 
-    // Fallback to web after a short delay (still may be blocked by user's network)
     window.setTimeout(() => {
       window.open(`https://wa.me/${waPhone}`, "_blank", "noopener,noreferrer");
     }, 400);
 
-    // Provide quick way to continue if WhatsApp is blocked
     try {
       await navigator.clipboard.writeText(displayPhone);
       toast({
@@ -262,6 +337,15 @@ export default function Pelanggan() {
         variant: "destructive",
       });
     }
+  };
+
+  const formatPhoneForWhatsApp = (phone: string) => {
+    const cleanPhone = phone.replace(/\D/g, '');
+    return cleanPhone.startsWith('0') 
+      ? '62' + cleanPhone.slice(1) 
+      : cleanPhone.startsWith('62') 
+        ? cleanPhone 
+        : '62' + cleanPhone;
   };
 
   if (loading) {
@@ -321,7 +405,7 @@ export default function Pelanggan() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nama Pelanggan</TableHead>
-                <TableHead>PIC</TableHead>
+                <TableHead>PIC & Kontak</TableHead>
                 <TableHead>Wilayah</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-center">SPH</TableHead>
@@ -349,61 +433,62 @@ export default function Pelanggan() {
                       <TableRow key={customer.id}>
                         <TableCell className="font-medium pl-6">{customer.name}</TableCell>
                         <TableCell>
-                          <div>
-                            <p className="font-medium">{customer.pic_name}</p>
-                            {customer.phones?.length > 0 && (
-                              <div className="flex flex-wrap gap-1">
-                                {customer.phones.filter(phone => phone).map((phone, idx) => {
-                                  // Format phone for WhatsApp (remove leading 0, add 62 for Indonesia)
-                                  const cleanPhone = phone.replace(/\D/g, '');
-                                  const waPhone = cleanPhone.startsWith('0') 
-                                    ? '62' + cleanPhone.slice(1) 
-                                    : cleanPhone.startsWith('62') 
-                                      ? cleanPhone 
-                                      : '62' + cleanPhone;
-                                  return (
-                                    <div key={idx} className="inline-flex items-center gap-2">
-                                      <span className="text-xs text-muted-foreground">{phone}</span>
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-7 w-7 bg-green-500 hover:bg-green-600 text-white rounded-full"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          openWhatsApp(waPhone, phone);
-                                        }}
-                                        aria-label={`WhatsApp ${phone}`}
-                                      >
-                                        <svg
-                                          viewBox="0 0 24 24"
-                                          className="h-4 w-4 fill-current"
-                                          xmlns="http://www.w3.org/2000/svg"
-                                        >
-                                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                                        </svg>
-                                      </Button>
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-6 w-6"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          navigator.clipboard
-                                            .writeText(phone)
-                                            .then(() => toast({ title: "Nomor disalin" }))
-                                            .catch(() => toast({ title: "Gagal menyalin", variant: "destructive" }));
-                                        }}
-                                        aria-label={`Copy nomor ${phone}`}
-                                      >
-                                        <Copy className="h-3 w-3" />
-                                      </Button>
-                                    </div>
-                                  );
-                                })}
+                          <div className="space-y-2">
+                            {customer.pics?.map((pic, picIdx) => (
+                              <div key={picIdx} className="border-l-2 border-primary/30 pl-2">
+                                <p className="font-medium text-sm flex items-center gap-1">
+                                  <User className="h-3 w-3 text-muted-foreground" />
+                                  {pic.name}
+                                </p>
+                                {pic.phones?.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {pic.phones.filter(phone => phone).map((phone, phoneIdx) => {
+                                      const waPhone = formatPhoneForWhatsApp(phone);
+                                      return (
+                                        <div key={phoneIdx} className="inline-flex items-center gap-1">
+                                          <span className="text-xs text-muted-foreground">{phone}</span>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6 bg-green-500 hover:bg-green-600 text-white rounded-full"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              openWhatsApp(waPhone, phone);
+                                            }}
+                                            aria-label={`WhatsApp ${phone}`}
+                                          >
+                                            <svg
+                                              viewBox="0 0 24 24"
+                                              className="h-3 w-3 fill-current"
+                                              xmlns="http://www.w3.org/2000/svg"
+                                            >
+                                              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                                            </svg>
+                                          </Button>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-5 w-5"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              navigator.clipboard
+                                                .writeText(phone)
+                                                .then(() => toast({ title: "Nomor disalin" }))
+                                                .catch(() => toast({ title: "Gagal menyalin", variant: "destructive" }));
+                                            }}
+                                            aria-label={`Copy nomor ${phone}`}
+                                          >
+                                            <Copy className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
                               </div>
-                            )}
+                            ))}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -486,7 +571,7 @@ export default function Pelanggan() {
 
         {/* Add Customer Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Tambah Pelanggan Baru</DialogTitle>
               <DialogDescription>
@@ -503,41 +588,75 @@ export default function Pelanggan() {
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="pic_name">Nama PIC *</Label>
-                <Input 
-                  id="pic_name" 
-                  placeholder="Contoh: Bpk. Ahmad / Ibu Sari" 
-                  value={formData.pic_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, pic_name: e.target.value }))}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label>Nomor Telepon PIC</Label>
-                {formData.phones.map((phone, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input 
-                      placeholder="08xxxxxxxxxx" 
-                      value={phone}
-                      onChange={(e) => handlePhoneChange(index, e.target.value)}
-                    />
-                    {formData.phones.length > 1 && (
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => handleRemovePhone(index)}
-                        className="shrink-0"
-                      >
-                        <X className="h-4 w-4" />
+
+              {/* Multiple PIC Section */}
+              <div className="grid gap-3">
+                <div className="flex items-center justify-between">
+                  <Label>PIC (Person In Charge) *</Label>
+                  <Button variant="outline" size="sm" onClick={handleAddPIC}>
+                    <Plus className="mr-1 h-3 w-3" />
+                    Tambah PIC
+                  </Button>
+                </div>
+                
+                {formData.pics.map((pic, picIndex) => (
+                  <div key={picIndex} className="rounded-lg border border-border p-3 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-muted-foreground">PIC {picIndex + 1}</span>
+                      {formData.pics.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-destructive"
+                          onClick={() => handleRemovePIC(picIndex)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <Label htmlFor={`pic_name_${picIndex}`}>Nama PIC</Label>
+                      <Input 
+                        id={`pic_name_${picIndex}`}
+                        placeholder="Contoh: Bpk. Ahmad / Ibu Sari" 
+                        value={pic.name}
+                        onChange={(e) => handlePICNameChange(picIndex, e.target.value)}
+                      />
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <Label>Nomor Telepon</Label>
+                      {pic.phones.map((phone, phoneIndex) => (
+                        <div key={phoneIndex} className="flex gap-2">
+                          <Input 
+                            placeholder="08xxxxxxxxxx" 
+                            value={phone}
+                            onChange={(e) => handlePhoneChange(picIndex, phoneIndex, e.target.value)}
+                          />
+                          {pic.phones.length > 1 && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => handleRemovePhone(picIndex, phoneIndex)}
+                              className="shrink-0"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                      <Button variant="ghost" size="sm" className="w-fit" onClick={() => handleAddPhone(picIndex)}>
+                        <Plus className="mr-1 h-3 w-3" />
+                        Tambah Nomor
                       </Button>
-                    )}
+                    </div>
                   </div>
                 ))}
-                <Button variant="ghost" size="sm" className="w-fit" onClick={handleAddPhone}>
-                  <Plus className="mr-1 h-3 w-3" />
-                  Tambah Nomor
-                </Button>
               </div>
+
+              <Separator />
+
               <div className="grid gap-2">
                 <Label htmlFor="city">Kota / Kabupaten *</Label>
                 <Input 
@@ -599,7 +718,10 @@ export default function Pelanggan() {
               <Button variant="outline" onClick={() => handleDialogClose(false)}>
                 Batal
               </Button>
-              <Button onClick={handleSubmit} disabled={!formData.name || !formData.pic_name || !formData.city || isSubmitting}>
+              <Button 
+                onClick={handleSubmit} 
+                disabled={!formData.name || !formData.pics.some(p => p.name.trim()) || !formData.city || isSubmitting}
+              >
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <Plus className="mr-2 h-4 w-4" />
                 Tambah Pelanggan
@@ -610,7 +732,7 @@ export default function Pelanggan() {
 
         {/* Edit Customer Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={handleEditDialogClose}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Pelanggan</DialogTitle>
               <DialogDescription>
@@ -626,39 +748,73 @@ export default function Pelanggan() {
                   onChange={(e) => setEditFormData(prev => ({ ...prev, name: e.target.value }))}
                 />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit_pic_name">Nama PIC *</Label>
-                <Input 
-                  id="edit_pic_name" 
-                  value={editFormData.pic_name}
-                  onChange={(e) => setEditFormData(prev => ({ ...prev, pic_name: e.target.value }))}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label>Nomor Telepon PIC</Label>
-                {editFormData.phones.map((phone, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input 
-                      value={phone}
-                      onChange={(e) => handleEditPhoneChange(index, e.target.value)}
-                    />
-                    {editFormData.phones.length > 1 && (
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => handleEditRemovePhone(index)}
-                        className="shrink-0"
-                      >
-                        <X className="h-4 w-4" />
+
+              {/* Multiple PIC Section for Edit */}
+              <div className="grid gap-3">
+                <div className="flex items-center justify-between">
+                  <Label>PIC (Person In Charge) *</Label>
+                  <Button variant="outline" size="sm" onClick={handleEditAddPIC}>
+                    <Plus className="mr-1 h-3 w-3" />
+                    Tambah PIC
+                  </Button>
+                </div>
+                
+                {editFormData.pics.map((pic, picIndex) => (
+                  <div key={picIndex} className="rounded-lg border border-border p-3 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-muted-foreground">PIC {picIndex + 1}</span>
+                      {editFormData.pics.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-destructive"
+                          onClick={() => handleEditRemovePIC(picIndex)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <Label htmlFor={`edit_pic_name_${picIndex}`}>Nama PIC</Label>
+                      <Input 
+                        id={`edit_pic_name_${picIndex}`}
+                        value={pic.name}
+                        onChange={(e) => handleEditPICNameChange(picIndex, e.target.value)}
+                      />
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <Label>Nomor Telepon</Label>
+                      {pic.phones.map((phone, phoneIndex) => (
+                        <div key={phoneIndex} className="flex gap-2">
+                          <Input 
+                            value={phone}
+                            onChange={(e) => handleEditPhoneChange(picIndex, phoneIndex, e.target.value)}
+                          />
+                          {pic.phones.length > 1 && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => handleEditRemovePhone(picIndex, phoneIndex)}
+                              className="shrink-0"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                      <Button variant="ghost" size="sm" className="w-fit" onClick={() => handleEditAddPhone(picIndex)}>
+                        <Plus className="mr-1 h-3 w-3" />
+                        Tambah Nomor
                       </Button>
-                    )}
+                    </div>
                   </div>
                 ))}
-                <Button variant="ghost" size="sm" className="w-fit" onClick={handleEditAddPhone}>
-                  <Plus className="mr-1 h-3 w-3" />
-                  Tambah Nomor
-                </Button>
               </div>
+
+              <Separator />
+
               <div className="grid gap-2">
                 <Label htmlFor="edit_city">Kota / Kabupaten *</Label>
                 <Input 
@@ -716,7 +872,10 @@ export default function Pelanggan() {
               <Button variant="outline" onClick={() => handleEditDialogClose(false)}>
                 Batal
               </Button>
-              <Button onClick={handleEditSubmit} disabled={!editFormData.name || !editFormData.pic_name || !editFormData.city || isEditSubmitting}>
+              <Button 
+                onClick={handleEditSubmit} 
+                disabled={!editFormData.name || !editFormData.pics.some(p => p.name.trim()) || !editFormData.city || isEditSubmitting}
+              >
                 {isEditSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Simpan Perubahan
               </Button>
@@ -736,7 +895,9 @@ export default function Pelanggan() {
             <div className="grid gap-4 py-4">
               <div className="rounded-lg border border-border bg-muted/30 p-3">
                 <p className="font-medium">{selectedCustomer?.name}</p>
-                <p className="text-sm text-muted-foreground">PIC: {selectedCustomer?.pic_name}</p>
+                <p className="text-sm text-muted-foreground">
+                  PIC: {selectedCustomer?.pics?.map(p => p.name).join(", ") || selectedCustomer?.pic_name}
+                </p>
                 <p className="text-sm text-muted-foreground">{selectedCustomer?.city}</p>
               </div>
               
