@@ -333,7 +333,7 @@ export default function Pelanggan() {
                                   return (
                                     <a
                                       key={idx}
-                                      href={`https://wa.me/${waPhone}`}
+                                      href={`https://web.whatsapp.com/send?phone=${waPhone}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="text-xs text-primary hover:underline inline-flex items-center gap-1"
