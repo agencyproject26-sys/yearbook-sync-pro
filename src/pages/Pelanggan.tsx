@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Filter, MoreHorizontal, X, Loader2, FileText, ExternalLink, Pencil, Link2, Copy, User } from "lucide-react";
+import { Plus, Search, Filter, MoreHorizontal, X, Loader2, FileText, ExternalLink, Pencil, Link2, Copy, User, FolderOpen } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -29,18 +29,17 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 import { useCustomers, CustomerFormData, Customer, PIC } from "@/hooks/useCustomers";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
+
 
 const statusConfig = {
   prospek: { label: "Prospek", className: "bg-warning/15 text-warning hover:bg-warning/20" },
@@ -401,50 +400,73 @@ export default function Pelanggan() {
           </p>
         </div>
 
-        {/* Customer Table */}
-        <div className="rounded-xl border border-border bg-card overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nama Pelanggan</TableHead>
-                <TableHead>PIC & Kontak</TableHead>
-                <TableHead>Wilayah</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-center">SPH</TableHead>
-                <TableHead className="w-[60px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedCities.map((city) => (
-                <>
-                  {/* City Header Row */}
-                  <TableRow key={`city-${city}`} className="bg-muted/50 hover:bg-muted/50">
-                    <TableCell colSpan={6} className="py-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-foreground">{city}</span>
-                        <Badge variant="secondary" className="text-xs">
-                          {groupedCustomers[city].length} pelanggan
-                        </Badge>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                  {/* Customer Rows */}
-                  {groupedCustomers[city].map((customer) => {
-                    const status = statusConfig[customer.status];
-                    return (
-                      <TableRow key={customer.id}>
-                        <TableCell className="font-medium pl-6">{customer.name}</TableCell>
-                        <TableCell>
-                          <div className="space-y-2">
-                            {customer.pics?.map((pic, picIdx) => (
-                              <div key={picIdx} className="border-l-2 border-primary/30 pl-2">
-                                <p className="font-medium text-sm flex items-center gap-1">
-                                  <User className="h-3 w-3 text-muted-foreground" />
-                                  {pic.name}
+        {/* Customer Folder View */}
+        {filteredCustomers.length === 0 ? (
+          <div className="rounded-xl border border-border bg-card p-12">
+            <div className="flex flex-col items-center justify-center text-center">
+              <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
+              <h3 className="text-lg font-medium">Belum ada pelanggan</h3>
+              <p className="text-sm text-muted-foreground">Klik tombol "Tambah Pelanggan" untuk menambahkan pelanggan baru.</p>
+            </div>
+          </div>
+        ) : (
+          <Accordion type="multiple" className="space-y-3">
+            {sortedCities.map((city) => (
+              <AccordionItem 
+                key={city} 
+                value={city}
+                className="rounded-xl border border-border bg-card overflow-hidden"
+              >
+                <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/50">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                      <FolderOpen className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-semibold text-foreground">{city}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {groupedCustomers[city].length} sekolah
+                      </p>
+                    </div>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pb-0">
+                  <div className="divide-y divide-border">
+                    {groupedCustomers[city].map((customer) => {
+                      const status = statusConfig[customer.status];
+                      return (
+                        <div
+                          key={customer.id}
+                          className="p-4 hover:bg-muted/30 transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            {/* Customer Info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h3 className="font-semibold text-foreground truncate">
+                                  {customer.name}
+                                </h3>
+                                <Badge className={cn("shrink-0", status.className)}>
+                                  {status.label}
+                                </Badge>
+                              </div>
+                              
+                              {/* Address */}
+                              {(customer.kecamatan || customer.kelurahan || customer.address) && (
+                                <p className="text-xs text-muted-foreground mb-3">
+                                  {[customer.kecamatan, customer.kelurahan, customer.address].filter(Boolean).join(", ")}
                                 </p>
-                                {pic.phones?.length > 0 && (
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    {pic.phones.filter(phone => phone).map((phone, phoneIdx) => {
+                              )}
+
+                              {/* PICs */}
+                              <div className="space-y-2">
+                                {customer.pics?.map((pic, picIdx) => (
+                                  <div key={picIdx} className="flex items-center gap-2 flex-wrap">
+                                    <div className="flex items-center gap-1 bg-muted/50 rounded-full px-2 py-1">
+                                      <User className="h-3 w-3 text-muted-foreground" />
+                                      <span className="text-sm font-medium">{pic.name}</span>
+                                    </div>
+                                    {pic.phones?.filter(phone => phone).map((phone, phoneIdx) => {
                                       const waPhone = formatPhoneForWhatsApp(phone);
                                       return (
                                         <div key={phoneIdx} className="inline-flex items-center gap-1">
@@ -453,7 +475,7 @@ export default function Pelanggan() {
                                             type="button"
                                             variant="ghost"
                                             size="icon"
-                                            className="h-6 w-6 bg-green-500 hover:bg-green-600 text-white rounded-full"
+                                            className="h-6 w-6 bg-success hover:bg-success/80 text-success-foreground rounded-full"
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               openWhatsApp(waPhone, phone);
@@ -488,88 +510,60 @@ export default function Pelanggan() {
                                       );
                                     })}
                                   </div>
-                                )}
+                                ))}
                               </div>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <p className="text-muted-foreground">{customer.city}</p>
-                            {(customer.kecamatan || customer.kelurahan) && (
-                              <p className="text-xs text-muted-foreground/70">
-                                {[customer.kecamatan, customer.kelurahan].filter(Boolean).join(", ")}
-                              </p>
-                            )}
-                            {customer.address && (
-                              <p className="text-xs text-muted-foreground/60 mt-1">
-                                {customer.address}
-                              </p>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={cn(status.className)}>{status.label}</Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <div className="flex items-center justify-center gap-1">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleCreateSph(customer)}
-                            >
-                              <FileText className="mr-1 h-3 w-3" />
-                              {customer.sph_link ? "Edit" : "Buat"} SPH
-                            </Button>
-                            {customer.sph_link && (
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex items-center gap-2 shrink-0">
                               <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-success"
-                                onClick={() => openSphLink(customer.sph_link!)}
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleCreateSph(customer)}
                               >
-                                <ExternalLink className="h-4 w-4" />
+                                <FileText className="mr-1 h-3 w-3" />
+                                {customer.sph_link ? "Edit" : "Buat"} SPH
                               </Button>
-                            )}
+                              {customer.sph_link && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-success"
+                                  onClick={() => openSphLink(customer.sph_link!)}
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                </Button>
+                              )}
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleEditCustomer(customer)}>
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    className="text-destructive"
+                                    onClick={() => deleteCustomer(customer.id)}
+                                  >
+                                    Hapus
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleEditCustomer(customer)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                className="text-destructive"
-                                onClick={() => deleteCustomer(customer.id)}
-                              >
-                                Hapus
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </>
-              ))}
-            </TableBody>
-          </Table>
-          
-          {filteredCustomers.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
-              <h3 className="text-lg font-medium">Belum ada pelanggan</h3>
-              <p className="text-sm text-muted-foreground">Klik tombol "Tambah Pelanggan" untuk menambahkan pelanggan baru.</p>
-            </div>
-          )}
-        </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        )}
 
         {/* Add Customer Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
