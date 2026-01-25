@@ -691,16 +691,6 @@ export default function Order() {
                 </div>
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="waDesc">Deskripsi Grup WhatsApp</Label>
-                <Textarea
-                  id="waDesc"
-                  placeholder="Masukkan deskripsi untuk grup WhatsApp"
-                  rows={3}
-                  value={formData.wa_desc}
-                  onChange={(e) => setFormData(prev => ({ ...prev, wa_desc: e.target.value }))}
-                />
-              </div>
 
               <div className="grid gap-2">
                 <Label htmlFor="notes">Catatan Internal</Label>
@@ -1100,12 +1090,6 @@ export default function Order() {
                   <p className="font-medium">{viewingOrder.gmail_email}</p>
                 </div>
               )}
-              {viewingOrder?.wa_desc && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Deskripsi WA</p>
-                  <p className="text-sm">{viewingOrder.wa_desc}</p>
-                </div>
-              )}
               {viewingOrder?.notes && (
                 <div>
                   <p className="text-sm text-muted-foreground">Catatan</p>
@@ -1152,14 +1136,6 @@ export default function Order() {
                     onChange={(e) => setEditOrderData(prev => ({ ...prev, value: parseFloat(e.target.value) || 0 }))}
                   />
                 </div>
-              </div>
-              <div className="grid gap-2">
-                <Label>Deskripsi Grup WhatsApp</Label>
-                <Textarea
-                  rows={2}
-                  value={editOrderData.wa_desc}
-                  onChange={(e) => setEditOrderData(prev => ({ ...prev, wa_desc: e.target.value }))}
-                />
               </div>
               <div className="grid gap-2">
                 <Label>Catatan Internal</Label>
