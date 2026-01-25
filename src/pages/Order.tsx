@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Filter, FileText, Link, FolderOpen, Mail, Loader2, Eye, ExternalLink, Trash2, FileTextIcon, Pencil } from "lucide-react";
+import { Search, Filter, FileText, Link, FolderOpen, Mail, Loader2, Eye, ExternalLink, Trash2, FileTextIcon, Pencil, MessageCircle } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -85,6 +85,8 @@ export default function Order() {
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [isMouDialogOpen, setIsMouDialogOpen] = useState(false);
   const [mouLink, setMouLink] = useState("");
+  const [isWaGroupDialogOpen, setIsWaGroupDialogOpen] = useState(false);
+  const [waGroupLink, setWaGroupLink] = useState("");
   const [isGmailDialogOpen, setIsGmailDialogOpen] = useState(false);
   const [gmailEmail, setGmailEmail] = useState("");
   const [isSpreadsheetDialogOpen, setIsSpreadsheetDialogOpen] = useState(false);
@@ -147,6 +149,22 @@ export default function Order() {
     await updateOrder(editingOrder.id, { mou_link: mouLink || null, has_mou: !!mouLink });
     setIsLinkSubmitting(false);
     setIsMouDialogOpen(false);
+    setEditingOrder(null);
+  };
+
+  // WhatsApp Group Dialog handlers
+  const handleOpenWaGroupDialog = (order: Order) => {
+    setEditingOrder(order);
+    setWaGroupLink(order.wa_group_link || "");
+    setIsWaGroupDialogOpen(true);
+  };
+
+  const handleSaveWaGroupLink = async () => {
+    if (!editingOrder) return;
+    setIsLinkSubmitting(true);
+    await updateOrder(editingOrder.id, { wa_group_link: waGroupLink || null });
+    setIsLinkSubmitting(false);
+    setIsWaGroupDialogOpen(false);
     setEditingOrder(null);
   };
 
@@ -403,6 +421,7 @@ export default function Order() {
                 <TableHead>Nama Pelanggan</TableHead>
                 <TableHead className="text-right">Nilai Order</TableHead>
                 <TableHead className="text-center">MOU</TableHead>
+                <TableHead className="text-center">Grup WhatsApp</TableHead>
                 <TableHead className="text-center">Design Cover</TableHead>
                 <TableHead className="text-center">Design Isi</TableHead>
                 <TableHead className="text-center">Design Packaging</TableHead>
@@ -439,6 +458,28 @@ export default function Order() {
                             size="icon"
                             className="h-8 w-8 text-success"
                             onClick={() => openExternalLink(order.mou_link!)}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenWaGroupDialog(order)}
+                        >
+                          <MessageCircle className="mr-1 h-3 w-3" />
+                          {order.wa_group_link ? "Edit" : "Add"}
+                        </Button>
+                        {order.wa_group_link && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-success"
+                            onClick={() => openExternalLink(order.wa_group_link!)}
                           >
                             <ExternalLink className="h-4 w-4" />
                           </Button>
@@ -748,6 +789,42 @@ export default function Order() {
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsGmailDialogOpen(false)}>Batal</Button>
               <Button onClick={handleSaveGmail} disabled={isLinkSubmitting}>
+                {isLinkSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Simpan
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* WhatsApp Group Dialog */}
+        <Dialog open={isWaGroupDialogOpen} onOpenChange={(open) => { setIsWaGroupDialogOpen(open); if (!open) setEditingOrder(null); }}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Grup WhatsApp</DialogTitle>
+              <DialogDescription>
+                Grup WhatsApp untuk {editingOrder?.customers?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Link Grup WhatsApp</Label>
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder="https://chat.whatsapp.com/..." 
+                    value={waGroupLink}
+                    onChange={(e) => setWaGroupLink(e.target.value)}
+                  />
+                  {waGroupLink && (
+                    <Button variant="ghost" size="icon" onClick={() => openExternalLink(waGroupLink)}>
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsWaGroupDialogOpen(false)}>Batal</Button>
+              <Button onClick={handleSaveWaGroupLink} disabled={isLinkSubmitting}>
                 {isLinkSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Simpan
               </Button>

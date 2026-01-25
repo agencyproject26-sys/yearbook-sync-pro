@@ -24,6 +24,7 @@ export interface Order {
   design_cover_status: DesignStatus;
   design_isi_status: DesignStatus;
   design_packaging_status: DesignStatus;
+  wa_group_link: string | null;
   wa_desc: string | null;
   notes: string | null;
   created_at: string;

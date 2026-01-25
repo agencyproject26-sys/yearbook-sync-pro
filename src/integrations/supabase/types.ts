@@ -214,6 +214,7 @@ export type Database = {
           updated_at: string
           value: number
           wa_desc: string | null
+          wa_group_link: string | null
         }
         Insert: {
           created_at?: string
@@ -239,6 +240,7 @@ export type Database = {
           updated_at?: string
           value?: number
           wa_desc?: string | null
+          wa_group_link?: string | null
         }
         Update: {
           created_at?: string
@@ -264,6 +266,7 @@ export type Database = {
           updated_at?: string
           value?: number
           wa_desc?: string | null
+          wa_group_link?: string | null
         }
         Relationships: [
           {
