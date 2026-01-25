@@ -362,6 +362,8 @@ export default function Order() {
         showAddButton
         addButtonLabel="Buat Order"
         onAddClick={() => setIsDialogOpen(true)}
+        showSearch={false}
+        showNotifications={false}
       />
 
       <div className="p-6">
