@@ -401,7 +401,6 @@ export default function Order() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nama Pelanggan</TableHead>
-                <TableHead>Status</TableHead>
                 <TableHead className="text-center">MOU</TableHead>
                 <TableHead className="text-center">Design Cover</TableHead>
                 <TableHead className="text-center">Design Isi</TableHead>
@@ -412,7 +411,6 @@ export default function Order() {
             </TableHeader>
             <TableBody>
               {filteredOrders.map((order) => {
-                const status = statusConfig[order.status];
                 return (
                   <TableRow key={order.id}>
                     <TableCell>
@@ -420,9 +418,6 @@ export default function Order() {
                         <p className="font-medium">{order.customers?.name}</p>
                         <p className="text-xs text-muted-foreground">{order.order_number}</p>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={status.className}>{status.label}</Badge>
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="flex items-center justify-center gap-1">
