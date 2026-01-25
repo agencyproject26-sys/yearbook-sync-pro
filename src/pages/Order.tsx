@@ -401,6 +401,7 @@ export default function Order() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nama Pelanggan</TableHead>
+                <TableHead className="text-right">Nilai Order</TableHead>
                 <TableHead className="text-center">MOU</TableHead>
                 <TableHead className="text-center">Design Cover</TableHead>
                 <TableHead className="text-center">Design Isi</TableHead>
@@ -418,6 +419,9 @@ export default function Order() {
                         <p className="font-medium">{order.customers?.name}</p>
                         <p className="text-xs text-muted-foreground">{order.order_number}</p>
                       </div>
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      {formatCurrency(order.value)}
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="flex items-center justify-center gap-1">
