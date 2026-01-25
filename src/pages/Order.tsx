@@ -40,13 +40,20 @@ import {
 } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useOrders, type OrderFormData, type Order } from "@/hooks/useOrders";
+import { useOrders, type OrderFormData, type Order, type DesignStatus } from "@/hooks/useOrders";
 import { useCustomers } from "@/hooks/useCustomers";
 
 const statusConfig = {
   proses: { label: "Proses", className: "bg-info/15 text-info" },
   desain: { label: "Desain", className: "bg-warning/15 text-warning" },
   cetak: { label: "Cetak", className: "bg-accent/15 text-accent" },
+  selesai: { label: "Selesai", className: "bg-success/15 text-success" },
+};
+
+const designStatusConfig: Record<DesignStatus, { label: string; className: string }> = {
+  belum_mulai: { label: "Belum Mulai", className: "bg-muted text-muted-foreground" },
+  proses: { label: "Proses", className: "bg-info/15 text-info" },
+  review: { label: "Review", className: "bg-warning/15 text-warning" },
   selesai: { label: "Selesai", className: "bg-success/15 text-success" },
 };
 
@@ -440,69 +447,120 @@ export default function Order() {
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenDesignCoverDialog(order)}
+                      <div className="flex flex-col items-center gap-1">
+                        <Select
+                          value={order.design_cover_status}
+                          onValueChange={(value: DesignStatus) => updateOrder(order.id, { design_cover_status: value })}
                         >
-                          <Link className="mr-1 h-3 w-3" />
-                          {order.design_cover_link ? "Edit" : "Add"}
-                        </Button>
-                        {order.design_cover_link && (
+                          <SelectTrigger className="h-7 w-[110px] text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="belum_mulai">Belum Mulai</SelectItem>
+                            <SelectItem value="proses">Proses</SelectItem>
+                            <SelectItem value="review">Review</SelectItem>
+                            <SelectItem value="selesai">Selesai</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <div className="flex items-center gap-1">
                           <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-success"
-                            onClick={() => openExternalLink(order.design_cover_link!)}
+                            variant="outline"
+                            size="sm"
+                            className="h-6 text-xs px-2"
+                            onClick={() => handleOpenDesignCoverDialog(order)}
                           >
-                            <ExternalLink className="h-4 w-4" />
+                            <Link className="mr-1 h-3 w-3" />
+                            {order.design_cover_link ? "Edit" : "Add"}
                           </Button>
-                        )}
+                          {order.design_cover_link && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-success"
+                              onClick={() => openExternalLink(order.design_cover_link!)}
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenDesignIsiDialog(order)}
+                      <div className="flex flex-col items-center gap-1">
+                        <Select
+                          value={order.design_isi_status}
+                          onValueChange={(value: DesignStatus) => updateOrder(order.id, { design_isi_status: value })}
                         >
-                          <Link className="mr-1 h-3 w-3" />
-                          {order.design_isi_link ? "Edit" : "Add"}
-                        </Button>
-                        {order.design_isi_link && (
+                          <SelectTrigger className="h-7 w-[110px] text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="belum_mulai">Belum Mulai</SelectItem>
+                            <SelectItem value="proses">Proses</SelectItem>
+                            <SelectItem value="review">Review</SelectItem>
+                            <SelectItem value="selesai">Selesai</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <div className="flex items-center gap-1">
                           <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-success"
-                            onClick={() => openExternalLink(order.design_isi_link!)}
+                            variant="outline"
+                            size="sm"
+                            className="h-6 text-xs px-2"
+                            onClick={() => handleOpenDesignIsiDialog(order)}
                           >
-                            <ExternalLink className="h-4 w-4" />
+                            <Link className="mr-1 h-3 w-3" />
+                            {order.design_isi_link ? "Edit" : "Add"}
                           </Button>
-                        )}
+                          {order.design_isi_link && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-success"
+                              onClick={() => openExternalLink(order.design_isi_link!)}
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenDesignPackagingDialog(order)}
+                      <div className="flex flex-col items-center gap-1">
+                        <Select
+                          value={order.design_packaging_status}
+                          onValueChange={(value: DesignStatus) => updateOrder(order.id, { design_packaging_status: value })}
                         >
-                          <Link className="mr-1 h-3 w-3" />
-                          {order.design_packaging_link ? "Edit" : "Add"}
-                        </Button>
-                        {order.design_packaging_link && (
+                          <SelectTrigger className="h-7 w-[110px] text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="belum_mulai">Belum Mulai</SelectItem>
+                            <SelectItem value="proses">Proses</SelectItem>
+                            <SelectItem value="review">Review</SelectItem>
+                            <SelectItem value="selesai">Selesai</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <div className="flex items-center gap-1">
                           <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-success"
-                            onClick={() => openExternalLink(order.design_packaging_link!)}
+                            variant="outline"
+                            size="sm"
+                            className="h-6 text-xs px-2"
+                            onClick={() => handleOpenDesignPackagingDialog(order)}
                           >
-                            <ExternalLink className="h-4 w-4" />
+                            <Link className="mr-1 h-3 w-3" />
+                            {order.design_packaging_link ? "Edit" : "Add"}
                           </Button>
-                        )}
+                          {order.design_packaging_link && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-success"
+                              onClick={() => openExternalLink(order.design_packaging_link!)}
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
