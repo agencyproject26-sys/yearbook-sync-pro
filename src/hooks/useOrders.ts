@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+export type DesignStatus = "belum_mulai" | "proses" | "review" | "selesai";
+
 export interface Order {
   id: string;
   order_number: string;
@@ -19,6 +21,9 @@ export interface Order {
   design_cover_link: string | null;
   design_isi_link: string | null;
   design_packaging_link: string | null;
+  design_cover_status: DesignStatus;
+  design_isi_status: DesignStatus;
+  design_packaging_status: DesignStatus;
   wa_desc: string | null;
   notes: string | null;
   created_at: string;
