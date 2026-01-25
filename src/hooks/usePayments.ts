@@ -38,6 +38,7 @@ export const usePayments = () => {
       const { data, error } = await supabase
         .from("payments")
         .select(`*, invoices(invoice_number, customers(name, pic_name))`)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -118,19 +119,20 @@ export const usePayments = () => {
 
   const deletePayment = async (id: string) => {
     try {
+      // Soft delete - set deleted_at timestamp
       const { error } = await supabase
         .from("payments")
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq("id", id);
 
       if (error) throw error;
       setPayments(prev => prev.filter(p => p.id !== id));
       toast({
         title: "Berhasil",
-        description: "Pembayaran berhasil dihapus",
+        description: "Pembayaran berhasil dihapus (dapat dipulihkan di Recycle Bin)",
       });
       return true;
-    } catch (error: any) {
+    } catch {
       toast({
         title: "Error",
         description: "Gagal menghapus pembayaran",

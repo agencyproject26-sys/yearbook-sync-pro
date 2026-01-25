@@ -19,6 +19,7 @@ export type Database = {
           created_at: string
           customer_id: string | null
           date: string
+          deleted_at: string | null
           id: string
           notes: string | null
           time: string
@@ -29,6 +30,7 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           date: string
+          deleted_at?: string | null
           id?: string
           notes?: string | null
           time: string
@@ -39,6 +41,7 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           date?: string
+          deleted_at?: string | null
           id?: string
           notes?: string | null
           time?: string
@@ -84,6 +87,7 @@ export type Database = {
           address: string | null
           city: string
           created_at: string
+          deleted_at: string | null
           id: string
           kecamatan: string | null
           kelurahan: string | null
@@ -99,6 +103,7 @@ export type Database = {
           address?: string | null
           city: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           kecamatan?: string | null
           kelurahan?: string | null
@@ -114,6 +119,7 @@ export type Database = {
           address?: string | null
           city?: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           kecamatan?: string | null
           kelurahan?: string | null
@@ -133,6 +139,7 @@ export type Database = {
           company_logo_url: string | null
           created_at: string
           customer_id: string
+          deleted_at: string | null
           dp_amount: number | null
           dp_date: string | null
           due_date: string
@@ -150,6 +157,7 @@ export type Database = {
           company_logo_url?: string | null
           created_at?: string
           customer_id: string
+          deleted_at?: string | null
           dp_amount?: number | null
           dp_date?: string | null
           due_date: string
@@ -167,6 +175,7 @@ export type Database = {
           company_logo_url?: string | null
           created_at?: string
           customer_id?: string
+          deleted_at?: string | null
           dp_amount?: number | null
           dp_date?: string | null
           due_date?: string
@@ -193,6 +202,7 @@ export type Database = {
         Row: {
           created_at: string
           customer_id: string
+          deleted_at: string | null
           design_cover_link: string | null
           design_cover_status: string | null
           design_isi_link: string | null
@@ -219,6 +229,7 @@ export type Database = {
         Insert: {
           created_at?: string
           customer_id: string
+          deleted_at?: string | null
           design_cover_link?: string | null
           design_cover_status?: string | null
           design_isi_link?: string | null
@@ -245,6 +256,7 @@ export type Database = {
         Update: {
           created_at?: string
           customer_id?: string
+          deleted_at?: string | null
           design_cover_link?: string | null
           design_cover_status?: string | null
           design_isi_link?: string | null
@@ -282,6 +294,7 @@ export type Database = {
         Row: {
           amount: number
           created_at: string
+          deleted_at: string | null
           description: string | null
           id: string
           invoice_id: string
@@ -291,6 +304,7 @@ export type Database = {
         Insert: {
           amount: number
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           invoice_id: string
@@ -300,6 +314,7 @@ export type Database = {
         Update: {
           amount?: number
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           invoice_id?: string
@@ -321,6 +336,7 @@ export type Database = {
           amount: number
           category: string
           created_at: string
+          deleted_at: string | null
           description: string | null
           id: string
           name: string
@@ -331,6 +347,7 @@ export type Database = {
           amount: number
           category: string
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           name: string
@@ -341,6 +358,7 @@ export type Database = {
           amount?: number
           category?: string
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           name?: string

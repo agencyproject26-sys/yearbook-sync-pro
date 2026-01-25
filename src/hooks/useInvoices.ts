@@ -72,6 +72,7 @@ export const useInvoices = () => {
       const { data, error } = await supabase
         .from("invoices")
         .select(`*, customers(name, pic_name)`)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (error) throw error;

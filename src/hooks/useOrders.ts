@@ -58,6 +58,7 @@ export const useOrders = () => {
       const { data, error } = await supabase
         .from("orders")
         .select(`*, customers(name, pic_name)`)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -137,19 +138,20 @@ export const useOrders = () => {
 
   const deleteOrder = async (id: string) => {
     try {
+      // Soft delete - set deleted_at timestamp
       const { error } = await supabase
         .from("orders")
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq("id", id);
 
       if (error) throw error;
       setOrders(prev => prev.filter(o => o.id !== id));
       toast({
         title: "Berhasil",
-        description: "Order berhasil dihapus",
+        description: "Order berhasil dihapus (dapat dipulihkan di Recycle Bin)",
       });
       return true;
-    } catch (error: any) {
+    } catch {
       toast({
         title: "Error",
         description: "Gagal menghapus order",
