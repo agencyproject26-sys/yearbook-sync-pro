@@ -17,6 +17,16 @@ export default function Register() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Enhanced password validation
+  const validatePassword = (pwd: string): string | null => {
+    if (pwd.length < 8) return 'Password minimal 8 karakter';
+    if (!/[A-Z]/.test(pwd)) return 'Password harus mengandung huruf kapital';
+    if (!/[a-z]/.test(pwd)) return 'Password harus mengandung huruf kecil';
+    if (!/[0-9]/.test(pwd)) return 'Password harus mengandung angka';
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(pwd)) return 'Password harus mengandung karakter spesial (!@#$%^&*(),.?":{}|<>)';
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -29,11 +39,12 @@ export default function Register() {
       return;
     }
 
-    if (password.length < 6) {
+    const passwordError = validatePassword(password);
+    if (passwordError) {
       toast({
         variant: 'destructive',
-        title: 'Password terlalu pendek',
-        description: 'Password minimal 6 karakter'
+        title: 'Password tidak valid',
+        description: passwordError
       });
       return;
     }
@@ -89,11 +100,14 @@ export default function Register() {
               <Input
                 id="password"
                 type="password"
-                placeholder="Minimal 6 karakter"
+                placeholder="Min 8 karakter, huruf besar, kecil, angka, spesial"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+              <p className="text-xs text-muted-foreground">
+                Password harus minimal 8 karakter dengan huruf besar, huruf kecil, angka, dan karakter spesial.
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Konfirmasi Password</Label>

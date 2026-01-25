@@ -10,6 +10,30 @@ export interface CompanySettings {
   updated_at: string;
 }
 
+// File validation constants
+const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+const validateImageFile = (file: File): { valid: boolean; error?: string } => {
+  // Check file type
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    return { valid: false, error: 'File harus berupa gambar (PNG, JPEG, WebP)' };
+  }
+  
+  // Check file size
+  if (file.size > MAX_FILE_SIZE) {
+    return { valid: false, error: 'Ukuran file maksimal 5MB' };
+  }
+  
+  // Additional: Check file extension
+  const ext = file.name.split('.').pop()?.toLowerCase();
+  if (!['png', 'jpg', 'jpeg', 'webp'].includes(ext || '')) {
+    return { valid: false, error: 'Format file tidak didukung' };
+  }
+  
+  return { valid: true };
+};
+
 export const useCompanySettings = () => {
   const [settings, setSettings] = useState<CompanySettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,13 +59,27 @@ export const useCompanySettings = () => {
   };
 
   const uploadLogo = async (file: File): Promise<string | null> => {
+    // Validate file before upload
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
+      toast({
+        title: "Error",
+        description: validation.error,
+        variant: "destructive",
+      });
+      return null;
+    }
+
     try {
-      const fileExt = file.name.split(".").pop();
+      const fileExt = file.name.split(".").pop()?.toLowerCase();
       const fileName = `logo-${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("company-logos")
-        .upload(fileName, file, { upsert: true });
+        .upload(fileName, file, { 
+          upsert: true,
+          contentType: file.type
+        });
 
       if (uploadError) throw uploadError;
 
@@ -64,13 +102,27 @@ export const useCompanySettings = () => {
   };
 
   const uploadSignature = async (file: File): Promise<string | null> => {
+    // Validate file before upload
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
+      toast({
+        title: "Error",
+        description: validation.error,
+        variant: "destructive",
+      });
+      return null;
+    }
+
     try {
-      const fileExt = file.name.split(".").pop();
+      const fileExt = file.name.split(".").pop()?.toLowerCase();
       const fileName = `signature-${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("company-signatures")
-        .upload(fileName, file, { upsert: true });
+        .upload(fileName, file, { 
+          upsert: true,
+          contentType: file.type
+        });
 
       if (uploadError) throw uploadError;
 
