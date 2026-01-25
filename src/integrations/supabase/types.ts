@@ -193,6 +193,9 @@ export type Database = {
         Row: {
           created_at: string
           customer_id: string
+          design_cover_link: string | null
+          design_isi_link: string | null
+          design_packaging_link: string | null
           drive_link: string | null
           gmail_email: string | null
           google_doc_link: string | null
@@ -212,6 +215,9 @@ export type Database = {
         Insert: {
           created_at?: string
           customer_id: string
+          design_cover_link?: string | null
+          design_isi_link?: string | null
+          design_packaging_link?: string | null
           drive_link?: string | null
           gmail_email?: string | null
           google_doc_link?: string | null
@@ -231,6 +237,9 @@ export type Database = {
         Update: {
           created_at?: string
           customer_id?: string
+          design_cover_link?: string | null
+          design_isi_link?: string | null
+          design_packaging_link?: string | null
           drive_link?: string | null
           gmail_email?: string | null
           google_doc_link?: string | null

@@ -216,6 +216,63 @@ export default function Order() {
     setEditingOrder(null);
   };
 
+  // Design Cover Dialog
+  const [isDesignCoverDialogOpen, setIsDesignCoverDialogOpen] = useState(false);
+  const [designCoverLink, setDesignCoverLink] = useState("");
+
+  const handleOpenDesignCoverDialog = (order: Order) => {
+    setEditingOrder(order);
+    setDesignCoverLink(order.design_cover_link || "");
+    setIsDesignCoverDialogOpen(true);
+  };
+
+  const handleSaveDesignCoverLink = async () => {
+    if (!editingOrder) return;
+    setIsLinkSubmitting(true);
+    await updateOrder(editingOrder.id, { design_cover_link: designCoverLink || null });
+    setIsLinkSubmitting(false);
+    setIsDesignCoverDialogOpen(false);
+    setEditingOrder(null);
+  };
+
+  // Design Isi Dialog
+  const [isDesignIsiDialogOpen, setIsDesignIsiDialogOpen] = useState(false);
+  const [designIsiLink, setDesignIsiLink] = useState("");
+
+  const handleOpenDesignIsiDialog = (order: Order) => {
+    setEditingOrder(order);
+    setDesignIsiLink(order.design_isi_link || "");
+    setIsDesignIsiDialogOpen(true);
+  };
+
+  const handleSaveDesignIsiLink = async () => {
+    if (!editingOrder) return;
+    setIsLinkSubmitting(true);
+    await updateOrder(editingOrder.id, { design_isi_link: designIsiLink || null });
+    setIsLinkSubmitting(false);
+    setIsDesignIsiDialogOpen(false);
+    setEditingOrder(null);
+  };
+
+  // Design Packaging Dialog
+  const [isDesignPackagingDialogOpen, setIsDesignPackagingDialogOpen] = useState(false);
+  const [designPackagingLink, setDesignPackagingLink] = useState("");
+
+  const handleOpenDesignPackagingDialog = (order: Order) => {
+    setEditingOrder(order);
+    setDesignPackagingLink(order.design_packaging_link || "");
+    setIsDesignPackagingDialogOpen(true);
+  };
+
+  const handleSaveDesignPackagingLink = async () => {
+    if (!editingOrder) return;
+    setIsLinkSubmitting(true);
+    await updateOrder(editingOrder.id, { design_packaging_link: designPackagingLink || null });
+    setIsLinkSubmitting(false);
+    setIsDesignPackagingDialogOpen(false);
+    setEditingOrder(null);
+  };
+
   // View Order handlers
   const handleViewOrder = (order: Order) => {
     setViewingOrder(order);
@@ -339,6 +396,9 @@ export default function Order() {
                 <TableHead>Nama Pelanggan</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-center">MOU</TableHead>
+                <TableHead className="text-center">Design Cover</TableHead>
+                <TableHead className="text-center">Design Isi</TableHead>
+                <TableHead className="text-center">Design Packaging</TableHead>
                 <TableHead>Catatan</TableHead>
                 <TableHead className="w-[100px] text-center">Aksi</TableHead>
               </TableRow>
@@ -365,7 +425,7 @@ export default function Order() {
                           onClick={() => handleOpenMouDialog(order)}
                         >
                           <FileText className="mr-1 h-3 w-3" />
-                          {order.mou_link ? "Edit" : "Generate"} MOU
+                          {order.mou_link ? "Edit" : "Add"}
                         </Button>
                         {order.mou_link && (
                           <Button
@@ -373,6 +433,72 @@ export default function Order() {
                             size="icon"
                             className="h-8 w-8 text-success"
                             onClick={() => openExternalLink(order.mou_link!)}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenDesignCoverDialog(order)}
+                        >
+                          <Link className="mr-1 h-3 w-3" />
+                          {order.design_cover_link ? "Edit" : "Add"}
+                        </Button>
+                        {order.design_cover_link && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-success"
+                            onClick={() => openExternalLink(order.design_cover_link!)}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenDesignIsiDialog(order)}
+                        >
+                          <Link className="mr-1 h-3 w-3" />
+                          {order.design_isi_link ? "Edit" : "Add"}
+                        </Button>
+                        {order.design_isi_link && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-success"
+                            onClick={() => openExternalLink(order.design_isi_link!)}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenDesignPackagingDialog(order)}
+                        >
+                          <Link className="mr-1 h-3 w-3" />
+                          {order.design_packaging_link ? "Edit" : "Add"}
+                        </Button>
+                        {order.design_packaging_link && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-success"
+                            onClick={() => openExternalLink(order.design_packaging_link!)}
                           >
                             <ExternalLink className="h-4 w-4" />
                           </Button>
@@ -685,6 +811,114 @@ export default function Order() {
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsDocDialogOpen(false)}>Batal</Button>
               <Button onClick={handleSaveDocLink} disabled={isLinkSubmitting}>
+                {isLinkSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Simpan
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Design Cover Dialog */}
+        <Dialog open={isDesignCoverDialogOpen} onOpenChange={(open) => { setIsDesignCoverDialogOpen(open); if (!open) setEditingOrder(null); }}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Design Cover</DialogTitle>
+              <DialogDescription>
+                Link design cover untuk {editingOrder?.customers?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Link Design Cover (Opsional)</Label>
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder="https://..." 
+                    value={designCoverLink}
+                    onChange={(e) => setDesignCoverLink(e.target.value)}
+                  />
+                  {designCoverLink && (
+                    <Button variant="ghost" size="icon" onClick={() => openExternalLink(designCoverLink)}>
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDesignCoverDialogOpen(false)}>Batal</Button>
+              <Button onClick={handleSaveDesignCoverLink} disabled={isLinkSubmitting}>
+                {isLinkSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Simpan
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Design Isi Dialog */}
+        <Dialog open={isDesignIsiDialogOpen} onOpenChange={(open) => { setIsDesignIsiDialogOpen(open); if (!open) setEditingOrder(null); }}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Design Isi</DialogTitle>
+              <DialogDescription>
+                Link design isi untuk {editingOrder?.customers?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Link Design Isi (Opsional)</Label>
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder="https://..." 
+                    value={designIsiLink}
+                    onChange={(e) => setDesignIsiLink(e.target.value)}
+                  />
+                  {designIsiLink && (
+                    <Button variant="ghost" size="icon" onClick={() => openExternalLink(designIsiLink)}>
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDesignIsiDialogOpen(false)}>Batal</Button>
+              <Button onClick={handleSaveDesignIsiLink} disabled={isLinkSubmitting}>
+                {isLinkSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Simpan
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Design Packaging Dialog */}
+        <Dialog open={isDesignPackagingDialogOpen} onOpenChange={(open) => { setIsDesignPackagingDialogOpen(open); if (!open) setEditingOrder(null); }}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Design Packaging</DialogTitle>
+              <DialogDescription>
+                Link design packaging untuk {editingOrder?.customers?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Link Design Packaging (Opsional)</Label>
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder="https://..." 
+                    value={designPackagingLink}
+                    onChange={(e) => setDesignPackagingLink(e.target.value)}
+                  />
+                  {designPackagingLink && (
+                    <Button variant="ghost" size="icon" onClick={() => openExternalLink(designPackagingLink)}>
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDesignPackagingDialogOpen(false)}>Batal</Button>
+              <Button onClick={handleSaveDesignPackagingLink} disabled={isLinkSubmitting}>
                 {isLinkSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Simpan
               </Button>
