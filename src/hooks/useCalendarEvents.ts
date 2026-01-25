@@ -35,6 +35,7 @@ export const useCalendarEvents = () => {
       const { data, error } = await supabase
         .from("calendar_events")
         .select(`*, customers(name)`)
+        .is("deleted_at", null)
         .order("date", { ascending: true });
 
       if (error) throw error;

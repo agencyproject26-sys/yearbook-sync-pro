@@ -35,6 +35,7 @@ export const useSalaries = () => {
       const { data, error } = await supabase
         .from("salaries")
         .select(`*, orders(order_number)`)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -117,19 +118,20 @@ export const useSalaries = () => {
 
   const deleteSalary = async (id: string) => {
     try {
+      // Soft delete - set deleted_at timestamp
       const { error } = await supabase
         .from("salaries")
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq("id", id);
 
       if (error) throw error;
       setSalaries(prev => prev.filter(s => s.id !== id));
       toast({
         title: "Berhasil",
-        description: "Data gaji berhasil dihapus",
+        description: "Data gaji berhasil dihapus (dapat dipulihkan di Recycle Bin)",
       });
       return true;
-    } catch (error: any) {
+    } catch {
       toast({
         title: "Error",
         description: "Gagal menghapus data gaji",

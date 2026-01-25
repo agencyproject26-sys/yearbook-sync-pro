@@ -14,6 +14,7 @@ import Invoice from "./pages/Invoice";
 import Pembayaran from "./pages/Pembayaran";
 import Gaji from "./pages/Gaji";
 import Laporan from "./pages/Laporan";
+import RecycleBin from "./pages/RecycleBin";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/pembayaran" element={<ProtectedRoute><Pembayaran /></ProtectedRoute>} />
             <Route path="/gaji" element={<ProtectedRoute><Gaji /></ProtectedRoute>} />
             <Route path="/laporan" element={<ProtectedRoute><Laporan /></ProtectedRoute>} />
+            <Route path="/recycle-bin" element={<ProtectedRoute><RecycleBin /></ProtectedRoute>} />
             
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
