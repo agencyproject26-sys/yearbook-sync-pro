@@ -644,15 +644,15 @@ export default function Pembayaran() {
                                       </div>
                                     ) : payment.proof_link ? (
                                       <div className="flex items-center gap-1">
-                                        <a 
-                                          href={payment.proof_link} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          className="text-primary hover:underline flex items-center gap-1"
+                                        <Button 
+                                          variant="ghost" 
+                                          size="sm"
+                                          className="text-primary h-7"
+                                          onClick={() => window.open(payment.proof_link!, '_blank', 'noopener,noreferrer')}
                                         >
-                                          <ExternalLink className="h-4 w-4" />
+                                          <ExternalLink className="h-4 w-4 mr-1" />
                                           Lihat
-                                        </a>
+                                        </Button>
                                         <Button 
                                           variant="ghost" 
                                           size="icon"
