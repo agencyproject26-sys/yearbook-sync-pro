@@ -9,6 +9,7 @@ export interface Payment {
   amount: number;
   description: string | null;
   payment_date: string;
+  proof_link: string | null;
   created_at: string;
   invoices?: {
     invoice_number: string;
@@ -25,6 +26,7 @@ export interface PaymentFormData {
   amount: number;
   description: string;
   payment_date: string;
+  proof_link?: string;
 }
 
 export const usePayments = () => {
@@ -64,6 +66,7 @@ export const usePayments = () => {
           amount: formData.amount,
           description: formData.description || null,
           payment_date: formData.payment_date,
+          proof_link: formData.proof_link || null,
         })
         .select(`*, invoices(invoice_number, customers(name, pic_name))`)
         .single();
@@ -95,6 +98,7 @@ export const usePayments = () => {
           amount: formData.amount,
           description: formData.description || null,
           payment_date: formData.payment_date,
+          proof_link: formData.proof_link || null,
         })
         .eq("id", id)
         .select(`*, invoices(invoice_number, customers(name, pic_name))`)
@@ -111,6 +115,30 @@ export const usePayments = () => {
       toast({
         title: "Error",
         description: "Gagal memperbarui pembayaran",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const updateProofLink = async (id: string, proofLink: string) => {
+    try {
+      const { error } = await supabase
+        .from("payments")
+        .update({ proof_link: proofLink || null })
+        .eq("id", id);
+
+      if (error) throw error;
+      setPayments(prev => prev.map(p => p.id === id ? { ...p, proof_link: proofLink || null } : p));
+      toast({
+        title: "Berhasil",
+        description: "Link bukti transaksi berhasil diperbarui",
+      });
+      return true;
+    } catch {
+      toast({
+        title: "Error",
+        description: "Gagal memperbarui link bukti transaksi",
         variant: "destructive",
       });
       return false;
@@ -146,5 +174,5 @@ export const usePayments = () => {
     fetchPayments();
   }, []);
 
-  return { payments, loading, addPayment, updatePayment, deletePayment, refetch: fetchPayments };
+  return { payments, loading, addPayment, updatePayment, updateProofLink, deletePayment, refetch: fetchPayments };
 };
