@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Search, Download, Eye, Plus, Loader2, Pencil, Trash2 } from "lucide-react";
+import { Search, Download, Eye, Plus, Loader2, Pencil, Trash2, Check, X } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { usePayments, Payment, PaymentFormData } from "@/hooks/usePayments";
-import { useInvoices } from "@/hooks/useInvoices";
+import { useInvoices, Invoice } from "@/hooks/useInvoices";
 import { ReceiptPreview } from "@/components/receipt/ReceiptPreview";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -44,6 +44,19 @@ const formatCurrency = (value: number) => {
     currency: "IDR",
     minimumFractionDigits: 0,
   }).format(value);
+};
+
+// Calculate total paid for an invoice from payments
+const getInvoicePaidAmount = (invoiceId: string, payments: Payment[]) => {
+  return payments
+    .filter(p => p.invoice_id === invoiceId)
+    .reduce((sum, p) => sum + p.amount, 0);
+};
+
+// Get invoice remaining amount
+const getInvoiceRemaining = (invoice: Invoice, payments: Payment[]) => {
+  const paid = getInvoicePaidAmount(invoice.id, payments);
+  return Number(invoice.amount) - paid;
 };
 
 const numberToWords = (num: number): string => {
@@ -105,6 +118,12 @@ export default function Pembayaran() {
   const [formData, setFormData] = useState<FormData>(emptyFormData);
   const [isDownloading, setIsDownloading] = useState(false);
   const downloadPreviewRef = useRef<HTMLDivElement>(null);
+  
+  // Inline edit states
+  const [editingRowId, setEditingRowId] = useState<string | null>(null);
+  const [editAmount, setEditAmount] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const filteredPayments = payments.filter((payment) =>
     (payment.invoices?.customers?.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -194,6 +213,47 @@ export default function Pembayaran() {
       setFormData(emptyFormData);
       setEditingPayment(null);
     }
+  };
+
+  // Inline edit handlers
+  const handleStartInlineEdit = (payment: Payment) => {
+    setEditingRowId(payment.id);
+    setEditAmount(String(payment.amount));
+    setEditDescription(payment.description || "");
+  };
+
+  const handleCancelInlineEdit = () => {
+    setEditingRowId(null);
+    setEditAmount("");
+    setEditDescription("");
+  };
+
+  const handleSaveInlineEdit = async (payment: Payment) => {
+    setIsSubmitting(true);
+    const success = await updatePayment(payment.id, {
+      receipt_number: payment.receipt_number,
+      invoice_id: payment.invoice_id,
+      amount: parseFloat(editAmount) || 0,
+      description: editDescription,
+      payment_date: payment.payment_date,
+    });
+    setIsSubmitting(false);
+    
+    if (success) {
+      handleCancelInlineEdit();
+    }
+  };
+
+  // Get invoice info for a payment
+  const getInvoiceInfo = (payment: Payment) => {
+    const invoice = invoices.find(i => i.id === payment.invoice_id);
+    if (!invoice) return null;
+    
+    const totalInvoice = Number(invoice.amount);
+    const paidAmount = getInvoicePaidAmount(invoice.id, payments);
+    const remaining = totalInvoice - paidAmount;
+    
+    return { totalInvoice, paidAmount, remaining };
   };
 
   const getReceiptNumber = (payment: Payment): number => {
@@ -294,63 +354,144 @@ export default function Pembayaran() {
                 <tr>
                   <th>No. Kwitansi</th>
                   <th>Sekolah</th>
-                  <th>Jumlah</th>
+                  <th>Jumlah Bayar</th>
+                  <th>Info Invoice</th>
                   <th>Keterangan</th>
                   <th>Tanggal</th>
-                  <th>Invoice</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
-                {filteredPayments.map((payment) => (
-                  <tr key={payment.id}>
-                    <td className="font-medium">{payment.receipt_number}</td>
-                    <td>
-                      <div>
-                        <p className="font-medium">{payment.invoices?.customers?.name || "-"}</p>
-                        <p className="text-sm text-muted-foreground">{payment.invoices?.customers?.pic_name || "-"}</p>
-                      </div>
-                    </td>
-                    <td className="font-semibold text-success">{formatCurrency(payment.amount)}</td>
-                    <td className="text-muted-foreground">{payment.description || "-"}</td>
-                    <td className="text-muted-foreground">{payment.payment_date}</td>
-                    <td>
-                      <Badge variant="outline">{payment.invoices?.invoice_number || "-"}</Badge>
-                    </td>
-                    <td>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openPreview(payment)} title="Lihat">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => openEditDialog(payment)} title="Edit">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => handleDownloadPDF(payment)}
-                          disabled={isDownloading}
-                          title="Download PDF"
-                        >
-                          {isDownloading && selectedPayment?.id === payment.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                {filteredPayments.map((payment) => {
+                  const isEditing = editingRowId === payment.id;
+                  const invoiceInfo = getInvoiceInfo(payment);
+                  
+                  return (
+                    <tr key={payment.id}>
+                      <td className="font-medium">{payment.receipt_number}</td>
+                      <td>
+                        <div>
+                          <p className="font-medium">{payment.invoices?.customers?.name || "-"}</p>
+                          <p className="text-sm text-muted-foreground">{payment.invoices?.customers?.pic_name || "-"}</p>
+                        </div>
+                      </td>
+                      <td>
+                        {isEditing ? (
+                          <Input
+                            type="number"
+                            value={editAmount}
+                            onChange={(e) => setEditAmount(e.target.value)}
+                            className="h-8 w-32"
+                          />
+                        ) : (
+                          <span 
+                            className="font-semibold text-success cursor-pointer hover:text-primary transition-colors"
+                            onClick={() => handleStartInlineEdit(payment)}
+                          >
+                            {formatCurrency(payment.amount)}
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        {invoiceInfo ? (
+                          <div className="text-xs space-y-0.5">
+                            <p className="text-muted-foreground">
+                              Invoice: <span className="font-medium text-foreground">{formatCurrency(invoiceInfo.totalInvoice)}</span>
+                            </p>
+                            <p className="text-muted-foreground">
+                              Dibayar: <span className="font-medium text-success">{formatCurrency(invoiceInfo.paidAmount)}</span>
+                            </p>
+                            <p className="text-muted-foreground">
+                              Sisa: <span className={`font-medium ${invoiceInfo.remaining > 0 ? 'text-warning' : 'text-success'}`}>
+                                {formatCurrency(invoiceInfo.remaining)}
+                              </span>
+                            </p>
+                          </div>
+                        ) : (
+                          <Badge variant="outline">{payment.invoices?.invoice_number || "-"}</Badge>
+                        )}
+                      </td>
+                      <td>
+                        {isEditing ? (
+                          <Input
+                            value={editDescription}
+                            onChange={(e) => setEditDescription(e.target.value)}
+                            placeholder="Keterangan"
+                            className="h-8 w-40"
+                          />
+                        ) : (
+                          <span 
+                            className="text-muted-foreground cursor-pointer hover:text-primary transition-colors"
+                            onClick={() => handleStartInlineEdit(payment)}
+                          >
+                            {payment.description || "-"}
+                          </span>
+                        )}
+                      </td>
+                      <td className="text-muted-foreground">{payment.payment_date}</td>
+                      <td>
+                        <div className="flex gap-1">
+                          {isEditing ? (
+                            <>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => handleSaveInlineEdit(payment)}
+                                disabled={isSubmitting}
+                                title="Simpan"
+                              >
+                                {isSubmitting ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Check className="h-4 w-4 text-success" />
+                                )}
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={handleCancelInlineEdit}
+                                title="Batal"
+                              >
+                                <X className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </>
                           ) : (
-                            <Download className="h-4 w-4" />
+                            <>
+                              <Button variant="ghost" size="icon" onClick={() => openPreview(payment)} title="Lihat">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => openEditDialog(payment)} title="Edit">
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => handleDownloadPDF(payment)}
+                                disabled={isDownloading}
+                                title="Download PDF"
+                              >
+                                {isDownloading && selectedPayment?.id === payment.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Download className="h-4 w-4" />
+                                )}
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => openDeleteDialog(payment)}
+                                title="Hapus"
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
                           )}
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => openDeleteDialog(payment)}
-                          title="Hapus"
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {filteredPayments.length === 0 && (
                   <tr>
                     <td colSpan={7} className="text-center py-8 text-muted-foreground">
