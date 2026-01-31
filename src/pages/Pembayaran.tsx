@@ -110,6 +110,8 @@ export default function Pembayaran() {
   const { payments, loading, addPayment, updatePayment, deletePayment } = usePayments();
   const { invoices } = useInvoices();
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterMonth, setFilterMonth] = useState<string>("all");
+  const [filterInvoice, setFilterInvoice] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -125,10 +127,28 @@ export default function Pembayaran() {
   const [editDescription, setEditDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const filteredPayments = payments.filter((payment) =>
-    (payment.invoices?.customers?.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-    payment.receipt_number.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Get unique months from payments for filter options
+  const uniqueMonths = [...new Set(payments.map(p => p.payment_date.slice(0, 7)))].sort().reverse();
+
+  // Get unique invoices for filter options
+  const uniqueInvoices = [...new Map(
+    payments.map(p => [p.invoice_id, { id: p.invoice_id, number: p.invoices?.invoice_number || "" }])
+  ).values()].filter(inv => inv.number);
+
+  const filteredPayments = payments.filter((payment) => {
+    // Search filter
+    const matchesSearch = 
+      (payment.invoices?.customers?.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      payment.receipt_number.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Month filter
+    const matchesMonth = filterMonth === "all" || payment.payment_date.startsWith(filterMonth);
+    
+    // Invoice filter
+    const matchesInvoice = filterInvoice === "all" || payment.invoice_id === filterInvoice;
+    
+    return matchesSearch && matchesMonth && matchesInvoice;
+  });
 
   const totalPayments = payments.reduce((sum, p) => sum + p.amount, 0);
 
@@ -330,8 +350,8 @@ export default function Pembayaran() {
         </div>
 
         {/* Filters */}
-        <div className="mb-6">
-          <div className="relative max-w-xs">
+        <div className="mb-6 flex flex-wrap gap-3">
+          <div className="relative w-full max-w-xs">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Cari kwitansi..."
@@ -340,6 +360,53 @@ export default function Pembayaran() {
               className="pl-9"
             />
           </div>
+          
+          <Select value={filterMonth} onValueChange={setFilterMonth}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Semua Bulan" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Bulan</SelectItem>
+              {uniqueMonths.map((month) => {
+                const [year, m] = month.split("-");
+                const monthName = new Date(parseInt(year), parseInt(m) - 1).toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+                return (
+                  <SelectItem key={month} value={month}>
+                    {monthName}
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+
+          <Select value={filterInvoice} onValueChange={setFilterInvoice}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Semua Invoice" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Invoice</SelectItem>
+              {uniqueInvoices.map((inv) => (
+                <SelectItem key={inv.id} value={inv.id}>
+                  {inv.number}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {(filterMonth !== "all" || filterInvoice !== "all") && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setFilterMonth("all");
+                setFilterInvoice("all");
+              }}
+              className="text-muted-foreground"
+            >
+              <X className="mr-1 h-4 w-4" />
+              Reset Filter
+            </Button>
+          )}
         </div>
 
         {/* Payments Table */}
