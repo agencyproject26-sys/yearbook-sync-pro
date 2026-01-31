@@ -299,6 +299,7 @@ export type Database = {
           id: string
           invoice_id: string
           payment_date: string
+          proof_link: string | null
           receipt_number: string
         }
         Insert: {
@@ -309,6 +310,7 @@ export type Database = {
           id?: string
           invoice_id: string
           payment_date: string
+          proof_link?: string | null
           receipt_number: string
         }
         Update: {
@@ -319,6 +321,7 @@ export type Database = {
           id?: string
           invoice_id?: string
           payment_date?: string
+          proof_link?: string | null
           receipt_number?: string
         }
         Relationships: [

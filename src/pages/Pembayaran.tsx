@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Search, Download, Eye, Plus, Loader2, Pencil, Trash2, Check, X } from "lucide-react";
+import { Search, Download, Eye, Plus, Loader2, Pencil, Trash2, Check, X, ExternalLink, Link, ChevronDown, ChevronRight, FolderOpen } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Textarea } from "@/components/ui/textarea";
 import { usePayments, Payment, PaymentFormData } from "@/hooks/usePayments";
 import { useInvoices, Invoice } from "@/hooks/useInvoices";
@@ -107,11 +112,12 @@ const emptyFormData: FormData = {
 };
 
 export default function Pembayaran() {
-  const { payments, loading, addPayment, updatePayment, deletePayment } = usePayments();
+  const { payments, loading, addPayment, updatePayment, updateProofLink, deletePayment } = usePayments();
   const { invoices } = useInvoices();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterMonth, setFilterMonth] = useState<string>("all");
   const [filterInvoice, setFilterInvoice] = useState<string>("all");
+  const [filterSchool, setFilterSchool] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -126,6 +132,13 @@ export default function Pembayaran() {
   const [editAmount, setEditAmount] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Proof link edit state
+  const [editingProofLinkId, setEditingProofLinkId] = useState<string | null>(null);
+  const [editProofLink, setEditProofLink] = useState("");
+  
+  // Collapsible school folders state
+  const [expandedSchools, setExpandedSchools] = useState<Set<string>>(new Set());
 
   // Get unique months from payments for filter options
   const uniqueMonths = [...new Set(payments.map(p => p.payment_date.slice(0, 7)))].sort().reverse();
@@ -134,6 +147,9 @@ export default function Pembayaran() {
   const uniqueInvoices = [...new Map(
     payments.map(p => [p.invoice_id, { id: p.invoice_id, number: p.invoices?.invoice_number || "" }])
   ).values()].filter(inv => inv.number);
+  
+  // Get unique schools for filter options
+  const uniqueSchools = [...new Set(payments.map(p => p.invoices?.customers?.name || "Unknown"))].sort();
 
   const filteredPayments = payments.filter((payment) => {
     // Search filter
@@ -147,8 +163,41 @@ export default function Pembayaran() {
     // Invoice filter
     const matchesInvoice = filterInvoice === "all" || payment.invoice_id === filterInvoice;
     
-    return matchesSearch && matchesMonth && matchesInvoice;
+    // School filter
+    const matchesSchool = filterSchool === "all" || (payment.invoices?.customers?.name || "Unknown") === filterSchool;
+    
+    return matchesSearch && matchesMonth && matchesInvoice && matchesSchool;
   });
+  
+  // Group payments by school
+  const paymentsBySchool = filteredPayments.reduce((acc, payment) => {
+    const schoolName = payment.invoices?.customers?.name || "Unknown";
+    if (!acc[schoolName]) {
+      acc[schoolName] = [];
+    }
+    acc[schoolName].push(payment);
+    return acc;
+  }, {} as Record<string, Payment[]>);
+  
+  const toggleSchool = (schoolName: string) => {
+    setExpandedSchools(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(schoolName)) {
+        newSet.delete(schoolName);
+      } else {
+        newSet.add(schoolName);
+      }
+      return newSet;
+    });
+  };
+  
+  const expandAllSchools = () => {
+    setExpandedSchools(new Set(Object.keys(paymentsBySchool)));
+  };
+  
+  const collapseAllSchools = () => {
+    setExpandedSchools(new Set());
+  };
 
   const totalPayments = payments.reduce((sum, p) => sum + p.amount, 0);
 
@@ -256,11 +305,33 @@ export default function Pembayaran() {
       amount: parseFloat(editAmount) || 0,
       description: editDescription,
       payment_date: payment.payment_date,
+      proof_link: payment.proof_link || undefined,
     });
     setIsSubmitting(false);
     
     if (success) {
       handleCancelInlineEdit();
+    }
+  };
+  
+  // Proof link edit handlers
+  const handleStartProofLinkEdit = (payment: Payment) => {
+    setEditingProofLinkId(payment.id);
+    setEditProofLink(payment.proof_link || "");
+  };
+  
+  const handleCancelProofLinkEdit = () => {
+    setEditingProofLinkId(null);
+    setEditProofLink("");
+  };
+  
+  const handleSaveProofLink = async (payment: Payment) => {
+    setIsSubmitting(true);
+    const success = await updateProofLink(payment.id, editProofLink);
+    setIsSubmitting(false);
+    
+    if (success) {
+      handleCancelProofLinkEdit();
     }
   };
 
@@ -393,13 +464,28 @@ export default function Pembayaran() {
             </SelectContent>
           </Select>
 
-          {(filterMonth !== "all" || filterInvoice !== "all") && (
+          <Select value={filterSchool} onValueChange={setFilterSchool}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Semua Sekolah" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Sekolah</SelectItem>
+              {uniqueSchools.map((school) => (
+                <SelectItem key={school} value={school}>
+                  {school}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {(filterMonth !== "all" || filterInvoice !== "all" || filterSchool !== "all") && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => {
                 setFilterMonth("all");
                 setFilterInvoice("all");
+                setFilterSchool("all");
               }}
               className="text-muted-foreground"
             >
@@ -409,165 +495,274 @@ export default function Pembayaran() {
           )}
         </div>
 
-        {/* Payments Table */}
-        <div className="rounded-xl border border-border bg-card overflow-hidden">
+        {/* Expand/Collapse Controls */}
+        <div className="mb-4 flex gap-2">
+          <Button variant="outline" size="sm" onClick={expandAllSchools}>
+            <ChevronDown className="mr-1 h-4 w-4" />
+            Buka Semua
+          </Button>
+          <Button variant="outline" size="sm" onClick={collapseAllSchools}>
+            <ChevronRight className="mr-1 h-4 w-4" />
+            Tutup Semua
+          </Button>
+        </div>
+
+        {/* Payments Grouped by School */}
+        <div className="space-y-4">
           {loading ? (
-            <div className="flex items-center justify-center p-8">
+            <div className="flex items-center justify-center p-8 rounded-xl border border-border bg-card">
               <Loader2 className="h-6 w-6 animate-spin" />
             </div>
+          ) : Object.keys(paymentsBySchool).length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground rounded-xl border border-border bg-card">
+              Belum ada data pembayaran
+            </div>
           ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>No. Kwitansi</th>
-                  <th>Sekolah</th>
-                  <th>Jumlah Bayar</th>
-                  <th>Info Invoice</th>
-                  <th>Keterangan</th>
-                  <th>Tanggal</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredPayments.map((payment) => {
-                  const isEditing = editingRowId === payment.id;
-                  const invoiceInfo = getInvoiceInfo(payment);
-                  
-                  return (
-                    <tr key={payment.id}>
-                      <td className="font-medium">{payment.receipt_number}</td>
-                      <td>
-                        <div>
-                          <p className="font-medium">{payment.invoices?.customers?.name || "-"}</p>
-                          <p className="text-sm text-muted-foreground">{payment.invoices?.customers?.pic_name || "-"}</p>
-                        </div>
-                      </td>
-                      <td>
-                        {isEditing ? (
-                          <Input
-                            type="number"
-                            value={editAmount}
-                            onChange={(e) => setEditAmount(e.target.value)}
-                            className="h-8 w-32"
-                          />
-                        ) : (
-                          <span 
-                            className="font-semibold text-success cursor-pointer hover:text-primary transition-colors"
-                            onClick={() => handleStartInlineEdit(payment)}
-                          >
-                            {formatCurrency(payment.amount)}
-                          </span>
-                        )}
-                      </td>
-                      <td>
-                        {invoiceInfo ? (
-                          <div className="text-xs space-y-0.5">
-                            <p className="text-muted-foreground">
-                              Invoice: <span className="font-medium text-foreground">{formatCurrency(invoiceInfo.totalInvoice)}</span>
-                            </p>
-                            <p className="text-muted-foreground">
-                              Dibayar: <span className="font-medium text-success">{formatCurrency(invoiceInfo.paidAmount)}</span>
-                            </p>
-                            <p className="text-muted-foreground">
-                              Sisa: <span className={`font-medium ${invoiceInfo.remaining > 0 ? 'text-warning' : 'text-success'}`}>
-                                {formatCurrency(invoiceInfo.remaining)}
-                              </span>
-                            </p>
-                          </div>
-                        ) : (
-                          <Badge variant="outline">{payment.invoices?.invoice_number || "-"}</Badge>
-                        )}
-                      </td>
-                      <td>
-                        {isEditing ? (
-                          <Input
-                            value={editDescription}
-                            onChange={(e) => setEditDescription(e.target.value)}
-                            placeholder="Keterangan"
-                            className="h-8 w-40"
-                          />
-                        ) : (
-                          <span 
-                            className="text-muted-foreground cursor-pointer hover:text-primary transition-colors"
-                            onClick={() => handleStartInlineEdit(payment)}
-                          >
-                            {payment.description || "-"}
-                          </span>
-                        )}
-                      </td>
-                      <td className="text-muted-foreground">{payment.payment_date}</td>
-                      <td>
-                        <div className="flex gap-1">
-                          {isEditing ? (
-                            <>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                onClick={() => handleSaveInlineEdit(payment)}
-                                disabled={isSubmitting}
-                                title="Simpan"
-                              >
-                                {isSubmitting ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Check className="h-4 w-4 text-success" />
-                                )}
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                onClick={handleCancelInlineEdit}
-                                title="Batal"
-                              >
-                                <X className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </>
+            Object.entries(paymentsBySchool).map(([schoolName, schoolPayments]) => {
+              const totalSchoolPayments = schoolPayments.reduce((sum, p) => sum + p.amount, 0);
+              const isExpanded = expandedSchools.has(schoolName);
+              
+              return (
+                <Collapsible 
+                  key={schoolName} 
+                  open={isExpanded}
+                  onOpenChange={() => toggleSchool(schoolName)}
+                >
+                  <div className="rounded-xl border border-border bg-card overflow-hidden">
+                    <CollapsibleTrigger asChild>
+                      <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-3">
+                          {isExpanded ? (
+                            <ChevronDown className="h-5 w-5 text-muted-foreground" />
                           ) : (
-                            <>
-                              <Button variant="ghost" size="icon" onClick={() => openPreview(payment)} title="Lihat">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon" onClick={() => openEditDialog(payment)} title="Edit">
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                onClick={() => handleDownloadPDF(payment)}
-                                disabled={isDownloading}
-                                title="Download PDF"
-                              >
-                                {isDownloading && selectedPayment?.id === payment.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Download className="h-4 w-4" />
-                                )}
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                onClick={() => openDeleteDialog(payment)}
-                                title="Hapus"
-                                className="text-destructive hover:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </>
+                            <ChevronRight className="h-5 w-5 text-muted-foreground" />
                           )}
+                          <FolderOpen className="h-5 w-5 text-primary" />
+                          <div>
+                            <p className="font-semibold">{schoolName}</p>
+                            <p className="text-sm text-muted-foreground">{schoolPayments.length} pembayaran</p>
+                          </div>
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {filteredPayments.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="text-center py-8 text-muted-foreground">
-                      Belum ada data pembayaran
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                        <div className="text-right">
+                          <p className="font-semibold text-success">{formatCurrency(totalSchoolPayments)}</p>
+                          <p className="text-sm text-muted-foreground">Total</p>
+                        </div>
+                      </div>
+                    </CollapsibleTrigger>
+                    
+                    <CollapsibleContent>
+                      <div className="border-t border-border">
+                        <table className="data-table">
+                          <thead>
+                            <tr>
+                              <th>No. Kwitansi</th>
+                              <th>PIC</th>
+                              <th>Jumlah Bayar</th>
+                              <th>Info Invoice</th>
+                              <th>Bukti Transaksi</th>
+                              <th>Keterangan</th>
+                              <th>Tanggal</th>
+                              <th></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {schoolPayments.map((payment) => {
+                              const isEditing = editingRowId === payment.id;
+                              const isEditingProof = editingProofLinkId === payment.id;
+                              const invoiceInfo = getInvoiceInfo(payment);
+                              
+                              return (
+                                <tr key={payment.id}>
+                                  <td className="font-medium">{payment.receipt_number}</td>
+                                  <td className="text-muted-foreground">{payment.invoices?.customers?.pic_name || "-"}</td>
+                                  <td>
+                                    {isEditing ? (
+                                      <Input
+                                        type="number"
+                                        value={editAmount}
+                                        onChange={(e) => setEditAmount(e.target.value)}
+                                        className="h-8 w-32"
+                                      />
+                                    ) : (
+                                      <span 
+                                        className="font-semibold text-success cursor-pointer hover:text-primary transition-colors"
+                                        onClick={() => handleStartInlineEdit(payment)}
+                                      >
+                                        {formatCurrency(payment.amount)}
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td>
+                                    {invoiceInfo ? (
+                                      <div className="text-xs space-y-0.5">
+                                        <p className="text-muted-foreground">
+                                          Invoice: <span className="font-medium text-foreground">{formatCurrency(invoiceInfo.totalInvoice)}</span>
+                                        </p>
+                                        <p className="text-muted-foreground">
+                                          Dibayar: <span className="font-medium text-success">{formatCurrency(invoiceInfo.paidAmount)}</span>
+                                        </p>
+                                        <p className="text-muted-foreground">
+                                          Sisa: <span className={`font-medium ${invoiceInfo.remaining > 0 ? 'text-warning' : 'text-success'}`}>
+                                            {formatCurrency(invoiceInfo.remaining)}
+                                          </span>
+                                        </p>
+                                      </div>
+                                    ) : (
+                                      <Badge variant="outline">{payment.invoices?.invoice_number || "-"}</Badge>
+                                    )}
+                                  </td>
+                                  <td>
+                                    {isEditingProof ? (
+                                      <div className="flex items-center gap-1">
+                                        <Input
+                                          value={editProofLink}
+                                          onChange={(e) => setEditProofLink(e.target.value)}
+                                          placeholder="Link Google Drive"
+                                          className="h-8 w-40"
+                                        />
+                                        <Button 
+                                          variant="ghost" 
+                                          size="icon"
+                                          className="h-8 w-8"
+                                          onClick={() => handleSaveProofLink(payment)}
+                                          disabled={isSubmitting}
+                                        >
+                                          {isSubmitting ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                          ) : (
+                                            <Check className="h-4 w-4 text-success" />
+                                          )}
+                                        </Button>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="icon"
+                                          className="h-8 w-8"
+                                          onClick={handleCancelProofLinkEdit}
+                                        >
+                                          <X className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                      </div>
+                                    ) : payment.proof_link ? (
+                                      <div className="flex items-center gap-1">
+                                        <a 
+                                          href={payment.proof_link} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer"
+                                          className="text-primary hover:underline flex items-center gap-1"
+                                        >
+                                          <ExternalLink className="h-4 w-4" />
+                                          Lihat
+                                        </a>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="icon"
+                                          className="h-6 w-6"
+                                          onClick={() => handleStartProofLinkEdit(payment)}
+                                        >
+                                          <Pencil className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm"
+                                        className="text-muted-foreground h-7"
+                                        onClick={() => handleStartProofLinkEdit(payment)}
+                                      >
+                                        <Link className="h-3 w-3 mr-1" />
+                                        Tambah Link
+                                      </Button>
+                                    )}
+                                  </td>
+                                  <td>
+                                    {isEditing ? (
+                                      <Input
+                                        value={editDescription}
+                                        onChange={(e) => setEditDescription(e.target.value)}
+                                        placeholder="Keterangan"
+                                        className="h-8 w-40"
+                                      />
+                                    ) : (
+                                      <span 
+                                        className="text-muted-foreground cursor-pointer hover:text-primary transition-colors"
+                                        onClick={() => handleStartInlineEdit(payment)}
+                                      >
+                                        {payment.description || "-"}
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="text-muted-foreground">{payment.payment_date}</td>
+                                  <td>
+                                    <div className="flex gap-1">
+                                      {isEditing ? (
+                                        <>
+                                          <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            onClick={() => handleSaveInlineEdit(payment)}
+                                            disabled={isSubmitting}
+                                            title="Simpan"
+                                          >
+                                            {isSubmitting ? (
+                                              <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                              <Check className="h-4 w-4 text-success" />
+                                            )}
+                                          </Button>
+                                          <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            onClick={handleCancelInlineEdit}
+                                            title="Batal"
+                                          >
+                                            <X className="h-4 w-4 text-destructive" />
+                                          </Button>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Button variant="ghost" size="icon" onClick={() => openPreview(payment)} title="Lihat">
+                                            <Eye className="h-4 w-4" />
+                                          </Button>
+                                          <Button variant="ghost" size="icon" onClick={() => openEditDialog(payment)} title="Edit">
+                                            <Pencil className="h-4 w-4" />
+                                          </Button>
+                                          <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            onClick={() => handleDownloadPDF(payment)}
+                                            disabled={isDownloading}
+                                            title="Download PDF"
+                                          >
+                                            {isDownloading && selectedPayment?.id === payment.id ? (
+                                              <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                              <Download className="h-4 w-4" />
+                                            )}
+                                          </Button>
+                                          <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            onClick={() => openDeleteDialog(payment)}
+                                            title="Hapus"
+                                            className="text-destructive hover:text-destructive"
+                                          >
+                                            <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                        </>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </CollapsibleContent>
+                  </div>
+                </Collapsible>
+              );
+            })
           )}
         </div>
 
