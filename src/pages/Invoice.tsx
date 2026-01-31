@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { Search, Filter, MoreHorizontal, Download, Eye, Plus, Send, Loader2, Pencil, Trash2, Upload, ImageIcon, Printer, Settings, Check, FileDown } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Search, Filter, MoreHorizontal, Eye, Plus, Loader2, Pencil, Trash2, ImageIcon, Settings, Check, FileDown, X } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -85,7 +85,7 @@ const emptyPaymentTerm: PaymentTerm = {
 export default function Invoice() {
   const { invoices, loading, addInvoice, updateInvoice } = useInvoices();
   const { customers } = useCustomers();
-  const { settings: companySettings, uploadLogo, uploadSignature, saveSettings, getSignatureUrl, loading: settingsLoading } = useCompanySettings();
+  const { settings: companySettings, uploadLogo, uploadSignature, saveSettings, getSignatureUrl } = useCompanySettings();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -99,6 +99,11 @@ export default function Invoice() {
   const [formItems, setFormItems] = useState<InvoiceItem[]>([{ description: "", qty: "", price: "" }]);
   const [paymentTerms, setPaymentTerms] = useState<PaymentTerm[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Inline edit states
+  const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
+  const [editInvoiceNumber, setEditInvoiceNumber] = useState("");
+  const [editCustomerId, setEditCustomerId] = useState("");
   
   // Company settings state
   const [tempLogoUrl, setTempLogoUrl] = useState<string | null>(null);
@@ -361,6 +366,34 @@ export default function Invoice() {
     });
   };
 
+  // Inline edit handlers
+  const handleStartEdit = (invoice: Invoice) => {
+    setEditingInvoiceId(invoice.id);
+    setEditInvoiceNumber(invoice.invoice_number);
+    setEditCustomerId(invoice.customer_id);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingInvoiceId(null);
+    setEditInvoiceNumber("");
+    setEditCustomerId("");
+  };
+
+  const handleSaveInlineEdit = async () => {
+    if (!editingInvoiceId) return;
+    
+    setIsSubmitting(true);
+    const success = await updateInvoice(editingInvoiceId, {
+      invoice_number: editInvoiceNumber,
+      customer_id: editCustomerId,
+    });
+    setIsSubmitting(false);
+    
+    if (success) {
+      handleCancelEdit();
+    }
+  };
+
   // Download PDF function
   const handleDownloadPDF = async (invoice: Invoice) => {
     setIsDownloading(true);
@@ -546,14 +579,47 @@ export default function Invoice() {
                 const paidAmount = getPaidAmount(invoice);
                 const remainingAmount = getRemainingAmount(invoice);
                 
+                const isEditing = editingInvoiceId === invoice.id;
+                
                 return (
                   <TableRow key={invoice.id}>
-                    <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
+                    <TableCell className="font-medium">
+                      {isEditing ? (
+                        <Input
+                          value={editInvoiceNumber}
+                          onChange={(e) => setEditInvoiceNumber(e.target.value)}
+                          className="h-8 w-full"
+                        />
+                      ) : (
+                        <span 
+                          className="cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => handleStartEdit(invoice)}
+                        >
+                          {invoice.invoice_number}
+                        </span>
+                      )}
+                    </TableCell>
                     <TableCell>
-                      <div>
-                        <p className="font-medium">{invoice.customers?.name}</p>
-                        <p className="text-xs text-muted-foreground">{invoice.customers?.pic_name}</p>
-                      </div>
+                      {isEditing ? (
+                        <Select value={editCustomerId} onValueChange={setEditCustomerId}>
+                          <SelectTrigger className="h-8">
+                            <SelectValue placeholder="Pilih pelanggan" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {customers.map(c => (
+                              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <div 
+                          className="cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => handleStartEdit(invoice)}
+                        >
+                          <p className="font-medium">{invoice.customers?.name}</p>
+                          <p className="text-xs text-muted-foreground">{invoice.customers?.pic_name}</p>
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="text-right font-semibold">{formatCurrency(Number(invoice.amount))}</TableCell>
                     <TableCell>
@@ -563,7 +629,7 @@ export default function Invoice() {
                             {invoice.payment_terms.slice(0, 2).map((term, idx) => (
                               <div key={term.id || idx} className="flex items-center gap-2">
                                 <Badge 
-                                  variant="outline" 
+                                  variant="outline"
                                   className={cn(
                                     "text-xs",
                                     term.paid ? "bg-success/10 text-success border-success" : ""
@@ -603,59 +669,91 @@ export default function Invoice() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => handleOpenPreview(invoice)}
-                          title="Lihat Invoice"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => handleDownloadPDF(invoice)}
-                          disabled={isDownloading}
-                          title="Download PDF"
-                        >
-                          {isDownloading && previewInvoice?.id === invoice.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <FileDown className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleOpenPreview(invoice)}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              Lihat Invoice
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDownloadPDF(invoice)}>
-                              <FileDown className="mr-2 h-4 w-4" />
-                              Download PDF
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleOpenTerminDialog(invoice)}>
-                              <Pencil className="mr-2 h-4 w-4" />
-                              Edit Termin
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleMarkAsPaid(invoice)}>
-                              <Check className="mr-2 h-4 w-4" />
-                              Tandai Lunas
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="text-destructive"
-                              onClick={() => handleDeleteInvoice(invoice)}
+                        {isEditing ? (
+                          <>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={handleSaveInlineEdit}
+                              disabled={isSubmitting}
+                              title="Simpan"
                             >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Hapus
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              {isSubmitting ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Check className="h-4 w-4 text-success" />
+                              )}
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={handleCancelEdit}
+                              title="Batal"
+                            >
+                              <X className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => handleOpenPreview(invoice)}
+                              title="Lihat Invoice"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => handleDownloadPDF(invoice)}
+                              disabled={isDownloading}
+                              title="Download PDF"
+                            >
+                              {isDownloading && previewInvoice?.id === invoice.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <FileDown className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleStartEdit(invoice)}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Edit Invoice
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOpenPreview(invoice)}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  Lihat Invoice
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDownloadPDF(invoice)}>
+                                  <FileDown className="mr-2 h-4 w-4" />
+                                  Download PDF
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOpenTerminDialog(invoice)}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Edit Termin
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleMarkAsPaid(invoice)}>
+                                  <Check className="mr-2 h-4 w-4" />
+                                  Tandai Lunas
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  className="text-destructive"
+                                  onClick={() => handleDeleteInvoice(invoice)}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Hapus
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
