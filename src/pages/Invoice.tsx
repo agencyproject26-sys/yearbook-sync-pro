@@ -43,6 +43,7 @@ import { useCustomers } from "@/hooks/useCustomers";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useToast } from "@/hooks/use-toast";
 import { InvoicePreview } from "@/components/invoice/InvoicePreview";
+import { supabase } from "@/integrations/supabase/client";
 
 const statusConfig = {
   draft: { label: "Draft", className: "bg-muted text-muted-foreground" },
@@ -83,8 +84,8 @@ const emptyPaymentTerm: PaymentTerm = {
 };
 
 export default function Invoice() {
-  const { invoices, loading, addInvoice, updateInvoice } = useInvoices();
-  const { customers } = useCustomers();
+  const { invoices, loading, addInvoice, updateInvoice, refetch: refetchInvoices } = useInvoices();
+  const { customers, refetch: refetchCustomers } = useCustomers();
   const { settings: companySettings, uploadLogo, uploadSignature, saveSettings, getSignatureUrl } = useCompanySettings();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
@@ -104,6 +105,7 @@ export default function Invoice() {
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
   const [editInvoiceNumber, setEditInvoiceNumber] = useState("");
   const [editCustomerId, setEditCustomerId] = useState("");
+  const [editPicName, setEditPicName] = useState("");
   
   // Company settings state
   const [tempLogoUrl, setTempLogoUrl] = useState<string | null>(null);
@@ -331,14 +333,6 @@ export default function Invoice() {
     setIsPreviewDialogOpen(true);
   };
 
-  // Send Invoice (placeholder - shows toast)
-  const handleSendInvoice = (invoice: Invoice) => {
-    toast({
-      title: "Kirim Invoice",
-      description: `Invoice ${invoice.invoice_number} akan dikirim ke ${invoice.customers?.name}. Fitur ini akan segera tersedia.`,
-    });
-  };
-
   // Mark as Paid
   const handleMarkAsPaid = async (invoice: Invoice) => {
     const allPaidTerms = (invoice.payment_terms || []).map(term => ({
@@ -371,12 +365,14 @@ export default function Invoice() {
     setEditingInvoiceId(invoice.id);
     setEditInvoiceNumber(invoice.invoice_number);
     setEditCustomerId(invoice.customer_id);
+    setEditPicName(invoice.customers?.pic_name || "");
   };
 
   const handleCancelEdit = () => {
     setEditingInvoiceId(null);
     setEditInvoiceNumber("");
     setEditCustomerId("");
+    setEditPicName("");
   };
 
   const handleSaveInlineEdit = async () => {
@@ -387,6 +383,22 @@ export default function Invoice() {
       invoice_number: editInvoiceNumber,
       customer_id: editCustomerId,
     });
+    
+    // Also update customer's pic_name if changed
+    if (success && editPicName) {
+      const customer = customers.find(c => c.id === editCustomerId);
+      if (customer && customer.pic_name !== editPicName) {
+        // Update customer's pic_name
+        await supabase
+          .from("customers")
+          .update({ pic_name: editPicName })
+          .eq("id", editCustomerId);
+        // Refetch to update the display
+        await refetchCustomers();
+        await refetchInvoices();
+      }
+    }
+    
     setIsSubmitting(false);
     
     if (success) {
@@ -601,16 +613,54 @@ export default function Invoice() {
                     </TableCell>
                     <TableCell>
                       {isEditing ? (
-                        <Select value={editCustomerId} onValueChange={setEditCustomerId}>
-                          <SelectTrigger className="h-8">
-                            <SelectValue placeholder="Pilih pelanggan" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {customers.map(c => (
-                              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="space-y-2">
+                          <Select value={editCustomerId} onValueChange={(value) => {
+                            setEditCustomerId(value);
+                            // Reset PIC when customer changes
+                            const customer = customers.find(c => c.id === value);
+                            if (customer?.pics && customer.pics.length > 0) {
+                              setEditPicName(customer.pics[0].name);
+                            } else {
+                              setEditPicName(customer?.pic_name || "");
+                            }
+                          }}>
+                            <SelectTrigger className="h-8">
+                              <SelectValue placeholder="Pilih pelanggan" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {customers.map(c => (
+                                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {/* PIC Dropdown */}
+                          {(() => {
+                            const customer = customers.find(c => c.id === editCustomerId);
+                            const pics = customer?.pics || [];
+                            if (pics.length > 0) {
+                              return (
+                                <Select value={editPicName} onValueChange={setEditPicName}>
+                                  <SelectTrigger className="h-8">
+                                    <SelectValue placeholder="Pilih PIC" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {pics.map((pic, idx) => (
+                                      <SelectItem key={idx} value={pic.name}>{pic.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              );
+                            }
+                            return (
+                              <Input
+                                value={editPicName}
+                                onChange={(e) => setEditPicName(e.target.value)}
+                                placeholder="Nama PIC"
+                                className="h-8"
+                              />
+                            );
+                          })()}
+                        </div>
                       ) : (
                         <div 
                           className="cursor-pointer hover:text-primary transition-colors"
