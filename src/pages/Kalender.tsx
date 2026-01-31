@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Camera, Palette, Printer, Users, Loader2, Share2, Copy, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Camera, Palette, Printer, Users, Loader2, Share2, Copy, Check, Eye, Pencil, Trash2, MoreHorizontal } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -50,7 +66,7 @@ const emptyFormData: EventFormData = {
 };
 
 export default function Kalender() {
-  const { events, loading, addEvent } = useCalendarEvents();
+  const { events, loading, addEvent, updateEvent, deleteEvent } = useCalendarEvents();
   const { customers } = useCustomers();
   const { toast } = useToast();
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -61,6 +77,13 @@ export default function Kalender() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  
+  // View/Edit/Delete state
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [editFormData, setEditFormData] = useState<EventFormData>(emptyFormData);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -118,6 +141,61 @@ export default function Kalender() {
     setIsDialogOpen(open);
     if (!open) {
       setFormData(emptyFormData);
+    }
+  };
+
+  // View event
+  const handleViewEvent = (event: CalendarEvent) => {
+    setSelectedEvent(event);
+    setIsViewDialogOpen(true);
+  };
+
+  // Edit event
+  const handleEditEvent = (event: CalendarEvent) => {
+    setSelectedEvent(event);
+    setEditFormData({
+      title: event.title,
+      type: event.type,
+      date: event.date,
+      time: event.time,
+      customer_id: event.customer_id || "",
+      notes: event.notes || "",
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditSubmit = async () => {
+    if (!selectedEvent || !editFormData.title || !editFormData.type || !editFormData.date || !editFormData.time) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    const success = await updateEvent(selectedEvent.id, editFormData);
+    setIsSubmitting(false);
+
+    if (success) {
+      setEditFormData(emptyFormData);
+      setIsEditDialogOpen(false);
+      setSelectedEvent(null);
+    }
+  };
+
+  // Delete event
+  const handleDeleteEvent = (event: CalendarEvent) => {
+    setSelectedEvent(event);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedEvent) return;
+
+    setIsSubmitting(true);
+    const success = await deleteEvent(selectedEvent.id);
+    setIsSubmitting(false);
+
+    if (success) {
+      setIsDeleteDialogOpen(false);
+      setSelectedEvent(null);
     }
   };
 
@@ -337,6 +415,30 @@ export default function Kalender() {
                                 )}
                                 <p className="mt-1 text-sm text-muted-foreground">{event.time}</p>
                               </div>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleViewEvent(event)}>
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    Lihat Detail
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleEditEvent(event)}>
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => handleDeleteEvent(event)}
+                                    className="text-destructive focus:text-destructive"
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Hapus
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
                           </div>
                         );
@@ -392,12 +494,36 @@ export default function Kalender() {
                           <p className="text-sm text-muted-foreground">{event.customers.name}</p>
                         )}
                       </div>
-                      <div className="text-right">
+                      <div className="text-right mr-2">
                         <p className="font-medium">
                           {new Date(event.date).toLocaleDateString("id-ID", { weekday: "short", day: "numeric", month: "short" })}
                         </p>
                         <p className="text-sm text-muted-foreground">{event.time}</p>
                       </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleViewEvent(event)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            Lihat Detail
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditEvent(event)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleDeleteEvent(event)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Hapus
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   );
                 })
@@ -511,6 +637,208 @@ export default function Kalender() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* View Event Dialog */}
+        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Detail Jadwal</DialogTitle>
+            </DialogHeader>
+            {selectedEvent && (
+              <div className="grid gap-4 py-4">
+                <div className="flex items-center gap-3">
+                  {(() => {
+                    const config = typeConfig[selectedEvent.type];
+                    const Icon = config.icon;
+                    return (
+                      <>
+                        <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", config.className)}>
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <Badge className={config.className}>{config.label}</Badge>
+                      </>
+                    );
+                  })()}
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-muted-foreground">Judul</Label>
+                    <p className="font-medium">{selectedEvent.title}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-muted-foreground">Tanggal</Label>
+                      <p className="font-medium">
+                        {new Date(selectedEvent.date).toLocaleDateString("id-ID", {
+                          weekday: "long",
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Waktu</Label>
+                      <p className="font-medium">{selectedEvent.time}</p>
+                    </div>
+                  </div>
+                  {selectedEvent.customers?.name && (
+                    <div>
+                      <Label className="text-muted-foreground">Pelanggan</Label>
+                      <p className="font-medium">{selectedEvent.customers.name}</p>
+                    </div>
+                  )}
+                  {selectedEvent.notes && (
+                    <div>
+                      <Label className="text-muted-foreground">Catatan</Label>
+                      <p className="whitespace-pre-wrap">{selectedEvent.notes}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+                Tutup
+              </Button>
+              <Button onClick={() => {
+                setIsViewDialogOpen(false);
+                if (selectedEvent) handleEditEvent(selectedEvent);
+              }}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Event Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (!open) {
+            setEditFormData(emptyFormData);
+            setSelectedEvent(null);
+          }
+        }}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Edit Jadwal</DialogTitle>
+              <DialogDescription>
+                Ubah detail jadwal yang sudah ada.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-title">Judul *</Label>
+                <Input 
+                  id="edit-title" 
+                  placeholder="Contoh: Meeting Proposal" 
+                  value={editFormData.title}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, title: e.target.value }))}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-type">Tipe *</Label>
+                <Select 
+                  value={editFormData.type} 
+                  onValueChange={(value: "meeting" | "photo" | "design" | "print") => 
+                    setEditFormData(prev => ({ ...prev, type: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih tipe jadwal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="meeting">Meeting</SelectItem>
+                    <SelectItem value="photo">Pemotretan</SelectItem>
+                    <SelectItem value="design">Deadline Desain</SelectItem>
+                    <SelectItem value="print">Cetak</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-date">Tanggal *</Label>
+                  <Input 
+                    id="edit-date" 
+                    type="date" 
+                    value={editFormData.date}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, date: e.target.value }))}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-time">Waktu *</Label>
+                  <Input 
+                    id="edit-time" 
+                    type="time" 
+                    value={editFormData.time}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, time: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-customer">Pelanggan (Opsional)</Label>
+                <Select 
+                  value={editFormData.customer_id} 
+                  onValueChange={(value) => setEditFormData(prev => ({ ...prev, customer_id: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih sekolah" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-notes">Catatan</Label>
+                <Textarea 
+                  id="edit-notes" 
+                  placeholder="Catatan tambahan" 
+                  value={editFormData.notes}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, notes: e.target.value }))}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Batal
+              </Button>
+              <Button 
+                onClick={handleEditSubmit} 
+                disabled={!editFormData.title || !editFormData.type || !editFormData.date || !editFormData.time || isSubmitting}
+              >
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Simpan Perubahan
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Hapus Jadwal?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Apakah Anda yakin ingin menghapus jadwal "{selectedEvent?.title}"? 
+                Jadwal akan dipindahkan ke Recycle Bin dan dapat dipulihkan nanti.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Batal</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleConfirmDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Hapus
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Share Dialog */}
         <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>

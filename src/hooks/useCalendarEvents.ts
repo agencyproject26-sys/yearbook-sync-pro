@@ -83,9 +83,66 @@ export const useCalendarEvents = () => {
     }
   };
 
+  const updateEvent = async (id: string, formData: EventFormData) => {
+    try {
+      const { data, error } = await supabase
+        .from("calendar_events")
+        .update({
+          title: formData.title,
+          type: formData.type,
+          date: formData.date,
+          time: formData.time,
+          customer_id: formData.customer_id || null,
+          notes: formData.notes || null,
+        })
+        .eq("id", id)
+        .select(`*, customers(name)`)
+        .single();
+
+      if (error) throw error;
+      setEvents(prev => prev.map(e => e.id === id ? (data as CalendarEvent) : e));
+      toast({
+        title: "Berhasil",
+        description: "Jadwal berhasil diperbarui",
+      });
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Gagal memperbarui jadwal",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const deleteEvent = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("calendar_events")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", id);
+
+      if (error) throw error;
+      setEvents(prev => prev.filter(e => e.id !== id));
+      toast({
+        title: "Berhasil",
+        description: "Jadwal berhasil dihapus",
+      });
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Gagal menghapus jadwal",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   useEffect(() => {
     fetchEvents();
   }, []);
 
-  return { events, loading, addEvent, refetch: fetchEvents };
+  return { events, loading, addEvent, updateEvent, deleteEvent, refetch: fetchEvents };
 };
