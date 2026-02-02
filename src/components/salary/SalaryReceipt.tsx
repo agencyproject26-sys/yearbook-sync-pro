@@ -1,6 +1,5 @@
 import { forwardRef, useState, useEffect } from "react";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
-import { Camera, Palette, Printer, AlertTriangle } from "lucide-react";
 
 interface SalaryReceiptProps {
   salary: {
@@ -93,8 +92,8 @@ export const SalaryReceipt = forwardRef<HTMLDivElement, SalaryReceiptProps>(
             )}
             <div>
               <h1 className="text-xl font-bold">CREATIVE SHOOT</h1>
-              <p className="text-sm">Jl. Anggrek No. 123, Surabaya</p>
-              <p className="text-sm">Telp: 0812-3456-7890</p>
+              <p className="text-sm">Villa Gading Harapan 1, AR 3 No 16, Babelan - Kab. Bekasi</p>
+              <p className="text-sm">Telp: 081211352027</p>
             </div>
           </div>
           <div className="text-right">
@@ -146,7 +145,7 @@ export const SalaryReceipt = forwardRef<HTMLDivElement, SalaryReceiptProps>(
             </div>
           </div>
           <div className="text-center">
-            <p className="text-sm mb-2">Surabaya, {formatDate(salary.payment_date)}</p>
+            <p className="text-sm mb-2">Bekasi, {formatDate(salary.payment_date)}</p>
             <p className="text-sm">Mengetahui</p>
             {signatureUrl ? (
               <img
