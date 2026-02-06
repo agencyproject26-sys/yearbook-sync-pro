@@ -274,8 +274,16 @@ export default function Pelanggan() {
     }
   };
 
+  // Default SPH Canva template link
+  const DEFAULT_SPH_LINK = "https://www.canva.com/design/DAG-WneP84Y/jUB4E6-awlQvZ5cqafS9Wg/edit?utm_content=DAG-WneP84Y&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton";
+
   // Handle SPH (Surat Penawaran Harga)
-  const handleCreateSph = (customer: Customer) => {
+  const handleSphClick = (customer: Customer) => {
+    // Always open the default Canva template link
+    window.open(DEFAULT_SPH_LINK, "_blank");
+  };
+
+  const handleEditSph = (customer: Customer) => {
     setSelectedCustomer(customer);
     setSphLink(customer.sph_link || "");
     setIsSphDialogOpen(true);
@@ -519,21 +527,11 @@ export default function Pelanggan() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleCreateSph(customer)}
+                                onClick={() => handleSphClick(customer)}
                               >
                                 <FileText className="mr-1 h-3 w-3" />
-                                {customer.sph_link ? "Edit" : "Buat"} SPH
+                                SPH
                               </Button>
-                              {customer.sph_link && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-success"
-                                  onClick={() => openSphLink(customer.sph_link!)}
-                                >
-                                  <ExternalLink className="h-4 w-4" />
-                                </Button>
-                              )}
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="icon">
