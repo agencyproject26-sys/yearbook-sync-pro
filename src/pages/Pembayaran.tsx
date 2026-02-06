@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Search, Download, Eye, Plus, Loader2, Pencil, Trash2, Check, X, ExternalLink, Link, ChevronDown, ChevronRight, FolderOpen } from "lucide-react";
+import { Search, Download, Eye, Plus, Loader2, Pencil, Trash2, Check, X, Upload, ChevronDown, ChevronRight, FolderOpen } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { usePayments, Payment, PaymentFormData } from "@/hooks/usePayments";
 import { useInvoices, Invoice } from "@/hooks/useInvoices";
 import { ReceiptPreview } from "@/components/receipt/ReceiptPreview";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
@@ -133,9 +135,11 @@ export default function Pembayaran() {
   const [editDescription, setEditDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Proof link edit state
-  const [editingProofLinkId, setEditingProofLinkId] = useState<string | null>(null);
-  const [editProofLink, setEditProofLink] = useState("");
+  // Proof image states
+  const [isUploadingProof, setIsUploadingProof] = useState<string | null>(null);
+  const [isViewProofOpen, setIsViewProofOpen] = useState(false);
+  const [viewProofUrl, setViewProofUrl] = useState<string | null>(null);
+  const { toast } = useToast();
   
   // Collapsible school folders state
   const [expandedSchools, setExpandedSchools] = useState<Set<string>>(new Set());
@@ -314,24 +318,90 @@ export default function Pembayaran() {
     }
   };
   
-  // Proof link edit handlers
-  const handleStartProofLinkEdit = (payment: Payment) => {
-    setEditingProofLinkId(payment.id);
-    setEditProofLink(payment.proof_link || "");
-  };
-  
-  const handleCancelProofLinkEdit = () => {
-    setEditingProofLinkId(null);
-    setEditProofLink("");
-  };
-  
-  const handleSaveProofLink = async (payment: Payment) => {
-    setIsSubmitting(true);
-    const success = await updateProofLink(payment.id, editProofLink);
-    setIsSubmitting(false);
+  // Proof image upload handlers
+  const handleProofUpload = async (payment: Payment, file: File) => {
+    if (!file) return;
     
-    if (success) {
-      handleCancelProofLinkEdit();
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Error",
+        description: "Format file tidak didukung. Gunakan JPG, PNG, WebP, atau GIF.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Error",
+        description: "Ukuran file maksimal 5MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsUploadingProof(payment.id);
+    
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${payment.id}-${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('payment-proofs')
+        .upload(fileName, file, { upsert: true });
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('payment-proofs')
+        .getPublicUrl(fileName);
+      
+      const success = await updateProofLink(payment.id, publicUrl);
+      
+      if (success) {
+        toast({
+          title: "Berhasil",
+          description: "Bukti transaksi berhasil diupload",
+        });
+      }
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      toast({
+        title: "Error",
+        description: "Gagal mengupload bukti transaksi",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingProof(null);
+    }
+  };
+
+  const handleViewProof = (url: string) => {
+    setViewProofUrl(url);
+    setIsViewProofOpen(true);
+  };
+
+  const handleDownloadProof = async (url: string, paymentId: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `bukti-transaksi-${paymentId}.${url.split('.').pop()}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal mendownload bukti transaksi",
+        variant: "destructive",
+      });
     }
   };
 
@@ -568,7 +638,6 @@ export default function Pembayaran() {
                           <tbody>
                             {schoolPayments.map((payment) => {
                               const isEditing = editingRowId === payment.id;
-                              const isEditingProof = editingProofLinkId === payment.id;
                               const invoiceInfo = getInvoiceInfo(payment);
                               
                               return (
@@ -612,35 +681,10 @@ export default function Pembayaran() {
                                     )}
                                   </td>
                                   <td>
-                                    {isEditingProof ? (
-                                      <div className="flex items-center gap-1">
-                                        <Input
-                                          value={editProofLink}
-                                          onChange={(e) => setEditProofLink(e.target.value)}
-                                          placeholder="Link Google Drive"
-                                          className="h-8 w-40"
-                                        />
-                                        <Button 
-                                          variant="ghost" 
-                                          size="icon"
-                                          className="h-8 w-8"
-                                          onClick={() => handleSaveProofLink(payment)}
-                                          disabled={isSubmitting}
-                                        >
-                                          {isSubmitting ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                          ) : (
-                                            <Check className="h-4 w-4 text-success" />
-                                          )}
-                                        </Button>
-                                        <Button 
-                                          variant="ghost" 
-                                          size="icon"
-                                          className="h-8 w-8"
-                                          onClick={handleCancelProofLinkEdit}
-                                        >
-                                          <X className="h-4 w-4 text-destructive" />
-                                        </Button>
+                                    {isUploadingProof === payment.id ? (
+                                      <div className="flex items-center gap-2">
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <span className="text-sm text-muted-foreground">Uploading...</span>
                                       </div>
                                     ) : payment.proof_link ? (
                                       <div className="flex items-center gap-1">
@@ -648,30 +692,52 @@ export default function Pembayaran() {
                                           variant="ghost" 
                                           size="sm"
                                           className="text-primary h-7"
-                                          onClick={() => window.open(payment.proof_link!, '_blank', 'noopener,noreferrer')}
+                                          onClick={() => handleViewProof(payment.proof_link!)}
                                         >
-                                          <ExternalLink className="h-4 w-4 mr-1" />
+                                          <Eye className="h-4 w-4 mr-1" />
                                           Lihat
                                         </Button>
                                         <Button 
                                           variant="ghost" 
                                           size="icon"
                                           className="h-6 w-6"
-                                          onClick={() => handleStartProofLinkEdit(payment)}
+                                          onClick={() => handleDownloadProof(payment.proof_link!, payment.id)}
                                         >
-                                          <Pencil className="h-3 w-3" />
+                                          <Download className="h-3 w-3" />
                                         </Button>
+                                        <label className="cursor-pointer">
+                                          <input
+                                            type="file"
+                                            accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                                            className="hidden"
+                                            onChange={(e) => {
+                                              const file = e.target.files?.[0];
+                                              if (file) handleProofUpload(payment, file);
+                                              e.target.value = '';
+                                            }}
+                                          />
+                                          <div className="inline-flex items-center justify-center h-6 w-6 rounded-md hover:bg-accent transition-colors">
+                                            <Pencil className="h-3 w-3" />
+                                          </div>
+                                        </label>
                                       </div>
                                     ) : (
-                                      <Button 
-                                        variant="ghost" 
-                                        size="sm"
-                                        className="text-muted-foreground h-7"
-                                        onClick={() => handleStartProofLinkEdit(payment)}
-                                      >
-                                        <Link className="h-3 w-3 mr-1" />
-                                        Tambah Link
-                                      </Button>
+                                      <label className="cursor-pointer">
+                                        <input
+                                          type="file"
+                                          accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                                          className="hidden"
+                                          onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) handleProofUpload(payment, file);
+                                            e.target.value = '';
+                                          }}
+                                        />
+                                        <div className="inline-flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors text-sm">
+                                          <Upload className="h-3 w-3" />
+                                          Upload
+                                        </div>
+                                      </label>
                                     )}
                                   </td>
                                   <td>
@@ -936,6 +1002,50 @@ export default function Pembayaran() {
           </div>
         )}
       </div>
+
+      {/* View Proof Image Dialog */}
+      <Dialog open={isViewProofOpen} onOpenChange={setIsViewProofOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Bukti Transaksi</DialogTitle>
+            <DialogDescription>Gambar bukti pembayaran yang telah diupload</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4">
+            {viewProofUrl && (
+              <img 
+                src={viewProofUrl} 
+                alt="Bukti Transaksi" 
+                className="max-w-full max-h-[60vh] object-contain rounded-lg border"
+              />
+            )}
+            <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                onClick={() => viewProofUrl && window.open(viewProofUrl, '_blank')}
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                Buka di Tab Baru
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (viewProofUrl) {
+                    const a = document.createElement('a');
+                    a.href = viewProofUrl;
+                    a.download = `bukti-transaksi.${viewProofUrl.split('.').pop()}`;
+                    a.target = '_blank';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                  }
+                }}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </MainLayout>
   );
 }
