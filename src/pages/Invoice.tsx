@@ -29,6 +29,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -84,7 +94,7 @@ const emptyPaymentTerm: PaymentTerm = {
 };
 
 export default function Invoice() {
-  const { invoices, loading, addInvoice, updateInvoice, refetch: refetchInvoices } = useInvoices();
+  const { invoices, loading, addInvoice, updateInvoice, deleteInvoice, refetch: refetchInvoices } = useInvoices();
   const { customers, refetch: refetchCustomers } = useCustomers();
   const { settings: companySettings, uploadLogo, uploadSignature, saveSettings, getSignatureUrl } = useCompanySettings();
   const { toast } = useToast();
@@ -117,6 +127,8 @@ export default function Invoice() {
   const [signedSignatureUrl, setSignedSignatureUrl] = useState<string | null>(null);
   
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const signatureInputRef = useRef<HTMLInputElement>(null);
@@ -352,12 +364,16 @@ export default function Invoice() {
   };
 
   // Delete Invoice
-  const handleDeleteInvoice = async (invoice: Invoice) => {
-    // In a real app, you'd want a confirmation dialog
-    toast({
-      title: "Hapus Invoice",
-      description: `Invoice ${invoice.invoice_number} akan dihapus. Fitur ini akan segera tersedia.`,
-    });
+  const handleDeleteInvoice = (invoice: Invoice) => {
+    setInvoiceToDelete(invoice);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteInvoice = async () => {
+    if (!invoiceToDelete) return;
+    await deleteInvoice(invoiceToDelete.id);
+    setIsDeleteDialogOpen(false);
+    setInvoiceToDelete(null);
   };
 
   // Inline edit handlers
@@ -1272,6 +1288,25 @@ export default function Invoice() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Hapus Invoice</AlertDialogTitle>
+              <AlertDialogDescription>
+                Apakah Anda yakin ingin menghapus invoice {invoiceToDelete?.invoice_number}? 
+                Invoice yang dihapus dapat dipulihkan dari Recycle Bin.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setInvoiceToDelete(null)}>Batal</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDeleteInvoice} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Hapus
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </MainLayout>
   );
