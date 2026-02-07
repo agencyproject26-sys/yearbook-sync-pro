@@ -299,6 +299,7 @@ export type Database = {
           id: string
           invoice_id: string
           payment_date: string
+          pic_name: string | null
           proof_link: string | null
           receipt_number: string
         }
@@ -310,6 +311,7 @@ export type Database = {
           id?: string
           invoice_id: string
           payment_date: string
+          pic_name?: string | null
           proof_link?: string | null
           receipt_number: string
         }
@@ -321,6 +323,7 @@ export type Database = {
           id?: string
           invoice_id?: string
           payment_date?: string
+          pic_name?: string | null
           proof_link?: string | null
           receipt_number?: string
         }

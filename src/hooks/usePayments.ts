@@ -10,6 +10,7 @@ export interface Payment {
   description: string | null;
   payment_date: string;
   proof_link: string | null;
+  pic_name: string | null;
   created_at: string;
   invoices?: {
     invoice_number: string;
@@ -27,6 +28,7 @@ export interface PaymentFormData {
   description: string;
   payment_date: string;
   proof_link?: string;
+  pic_name?: string;
 }
 
 export const usePayments = () => {
@@ -67,6 +69,7 @@ export const usePayments = () => {
           description: formData.description || null,
           payment_date: formData.payment_date,
           proof_link: formData.proof_link || null,
+          pic_name: formData.pic_name || null,
         })
         .select(`*, invoices(invoice_number, customers(name, pic_name))`)
         .single();
@@ -99,6 +102,7 @@ export const usePayments = () => {
           description: formData.description || null,
           payment_date: formData.payment_date,
           proof_link: formData.proof_link || null,
+          pic_name: formData.pic_name || null,
         })
         .eq("id", id)
         .select(`*, invoices(invoice_number, customers(name, pic_name))`)
