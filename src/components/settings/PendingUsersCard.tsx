@@ -40,25 +40,37 @@ export function PendingUsersCard() {
     }
   });
 
-  // Approve user mutation
+  // Approve user mutation - calls edge function to confirm email + approve
   const approveMutation = useMutation({
     mutationFn: async (profile: Profile) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
       
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          is_approved: true,
-          approved_by: user?.id,
-          approved_at: new Date().toISOString()
-        })
-        .eq('id', profile.id);
+      if (!session) throw new Error("Not authenticated");
       
-      if (error) throw error;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/approve-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({ user_id: profile.user_id })
+        }
+      );
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to approve user");
+      }
+      
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-users'] });
-      toast({ title: "User berhasil di-approve" });
+      queryClient.invalidateQueries({ queryKey: ['all-users-roles'] });
+      toast({ title: "User berhasil di-approve", description: "User sekarang bisa login" });
     },
     onError: (error: any) => {
       toast({
