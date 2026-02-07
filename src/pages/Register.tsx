@@ -62,7 +62,7 @@ export default function Register() {
     } else {
       toast({
         title: 'Registrasi berhasil',
-        description: 'Akun Anda telah dibuat. Silakan login.'
+        description: 'Akun Anda telah dibuat. Silakan tunggu approval dari admin.'
       });
       navigate('/login');
     }

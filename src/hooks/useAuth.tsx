@@ -9,6 +9,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   roles: AppRole[];
+  isApproved: boolean;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -22,6 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [roles, setRoles] = useState<AppRole[]>([]);
+  const [isApproved, setIsApproved] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener BEFORE checking session
@@ -31,19 +33,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch user roles
+          // Fetch user roles and approval status
           setTimeout(async () => {
-            const { data: userRoles } = await supabase
-              .from('user_roles')
-              .select('role')
-              .eq('user_id', session.user.id);
+            const [rolesResult, profileResult] = await Promise.all([
+              supabase
+                .from('user_roles')
+                .select('role')
+                .eq('user_id', session.user.id),
+              supabase
+                .from('profiles')
+                .select('is_approved')
+                .eq('user_id', session.user.id)
+                .single()
+            ]);
             
-            if (userRoles) {
-              setRoles(userRoles.map(r => r.role as AppRole));
+            if (rolesResult.data) {
+              setRoles(rolesResult.data.map(r => r.role as AppRole));
             }
+            
+            setIsApproved(profileResult.data?.is_approved ?? false);
           }, 0);
         } else {
           setRoles([]);
+          setIsApproved(false);
         }
         
         setLoading(false);
@@ -51,20 +63,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .then(({ data: userRoles }) => {
-            if (userRoles) {
-              setRoles(userRoles.map(r => r.role as AppRole));
-            }
-          });
+        const [rolesResult, profileResult] = await Promise.all([
+          supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', session.user.id),
+          supabase
+            .from('profiles')
+            .select('is_approved')
+            .eq('user_id', session.user.id)
+            .single()
+        ]);
+        
+        if (rolesResult.data) {
+          setRoles(rolesResult.data.map(r => r.role as AppRole));
+        }
+        
+        setIsApproved(profileResult.data?.is_approved ?? false);
       }
       
       setLoading(false);
@@ -97,6 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setSession(null);
     setRoles([]);
+    setIsApproved(false);
   };
 
   const hasRole = (role: AppRole) => roles.includes(role);
@@ -107,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       loading,
       roles,
+      isApproved,
       signUp,
       signIn,
       signOut,
