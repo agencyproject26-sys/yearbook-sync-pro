@@ -169,9 +169,33 @@ export const useInvoices = () => {
     }
   };
 
+  const deleteInvoice = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("invoices")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", id);
+
+      if (error) throw error;
+      setInvoices(prev => prev.filter(inv => inv.id !== id));
+      toast({
+        title: "Berhasil",
+        description: "Invoice berhasil dihapus",
+      });
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Gagal menghapus invoice",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   useEffect(() => {
     fetchInvoices();
   }, []);
 
-  return { invoices, loading, addInvoice, updateInvoice, refetch: fetchInvoices };
+  return { invoices, loading, addInvoice, updateInvoice, deleteInvoice, refetch: fetchInvoices };
 };
