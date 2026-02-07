@@ -882,7 +882,7 @@ export default function Pembayaran() {
 
         {/* Add/Edit Payment Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingPayment ? "Edit Pembayaran" : "Catat Pembayaran Baru"}</DialogTitle>
               <DialogDescription>
