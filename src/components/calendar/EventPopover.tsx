@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { CalendarEvent, EventFormData } from "@/hooks/useCalendarEvents";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Customer {
   id: string;
@@ -40,6 +41,7 @@ interface EventPopoverProps {
   onUpdate: (id: string, data: EventFormData) => Promise<boolean>;
   onDelete: (id: string) => Promise<boolean>;
   children: React.ReactNode;
+  readOnly?: boolean;
 }
 
 const typeConfig = {
@@ -49,7 +51,7 @@ const typeConfig = {
   print: { icon: Printer, label: "Cetak", className: "bg-info/15 text-info" },
 };
 
-export function EventPopover({ event, customers, onUpdate, onDelete, children }: EventPopoverProps) {
+export function EventPopover({ event, customers, onUpdate, onDelete, children, readOnly = false }: EventPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -284,19 +286,21 @@ export function EventPopover({ event, customers, onUpdate, onDelete, children }:
                       <span className={cn("text-xs font-medium", config.className)}>{config.label}</span>
                     </div>
                   </div>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleStartEdit}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8 text-destructive hover:text-destructive" 
-                      onClick={() => setIsDeleteDialogOpen(true)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  {!readOnly && (
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleStartEdit}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-destructive hover:text-destructive" 
+                        onClick={() => setIsDeleteDialogOpen(true)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Details */}

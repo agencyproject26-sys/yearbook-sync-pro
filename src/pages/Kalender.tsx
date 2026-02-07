@@ -27,6 +27,7 @@ import { useCalendarEvents, EventFormData } from "@/hooks/useCalendarEvents";
 import { useCustomers } from "@/hooks/useCustomers";
 import { useToast } from "@/hooks/use-toast";
 import { EventPopover } from "@/components/calendar/EventPopover";
+import { useAuth } from "@/hooks/useAuth";
 
 const DAYS = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 const MONTHS = [
@@ -54,6 +55,7 @@ export default function Kalender() {
   const { events, loading, addEvent, updateEvent, deleteEvent } = useCalendarEvents();
   const { customers } = useCustomers();
   const { toast } = useToast();
+  const { roles, hasRole } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<"month" | "agenda">("month");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -62,6 +64,10 @@ export default function Kalender() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Check if user can modify calendar (not calendar_only)
+  const isCalendarOnly = roles.length === 1 && hasRole('calendar_only');
+  const canModify = !isCalendarOnly;
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -168,8 +174,8 @@ export default function Kalender() {
     <MainLayout>
       <Header
         title="Kalender"
-        subtitle="Jadwal meeting, pemotretan, dan deadline"
-        showAddButton
+        subtitle={isCalendarOnly ? "Lihat jadwal meeting, pemotretan, dan deadline" : "Jadwal meeting, pemotretan, dan deadline"}
+        showAddButton={canModify}
         addButtonLabel="Tambah Jadwal"
         onAddClick={() => setIsDialogOpen(true)}
       />
@@ -269,6 +275,7 @@ export default function Kalender() {
                                     customers={customers}
                                     onUpdate={updateEvent}
                                     onDelete={deleteEvent}
+                                    readOnly={!canModify}
                                   >
                                     <div
                                       className={cn(
@@ -338,6 +345,7 @@ export default function Kalender() {
                             customers={customers}
                             onUpdate={updateEvent}
                             onDelete={deleteEvent}
+                            readOnly={!canModify}
                           >
                             <div className="rounded-lg border border-border p-3 cursor-pointer hover:bg-muted/30 transition-colors">
                               <div className="flex items-start gap-3">
@@ -403,6 +411,7 @@ export default function Kalender() {
                       customers={customers}
                       onUpdate={updateEvent}
                       onDelete={deleteEvent}
+                      readOnly={!canModify}
                     >
                       <div className="flex items-center gap-4 p-4 hover:bg-muted/30 transition-colors cursor-pointer">
                         <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", config.className)}>
