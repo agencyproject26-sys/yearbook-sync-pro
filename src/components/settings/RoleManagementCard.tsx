@@ -9,7 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Users, Shield, Calendar, Crown, UserCog, Loader2, Plus, Trash2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Users, Shield, Calendar, Crown, UserCog, Loader2, Plus, Trash2, Pencil } from "lucide-react";
 
 type AppRole = 'admin' | 'owner' | 'staff' | 'calendar_only';
 
@@ -53,6 +55,8 @@ export function RoleManagementCard() {
   const queryClient = useQueryClient();
   const [selectedUser, setSelectedUser] = useState<UserWithRoles | null>(null);
   const [isAddRoleOpen, setIsAddRoleOpen] = useState(false);
+  const [isEditUserOpen, setIsEditUserOpen] = useState(false);
+  const [editFullName, setEditFullName] = useState("");
   const [newRole, setNewRole] = useState<AppRole | "">("");
   const [deleteConfirm, setDeleteConfirm] = useState<{ userId: string; role: AppRole } | null>(null);
 
@@ -158,6 +162,44 @@ export function RoleManagementCard() {
     }
   };
 
+  // Update user profile mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async ({ userId, fullName }: { userId: string; fullName: string }) => {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ full_name: fullName })
+        .eq('user_id', userId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all-users-roles'] });
+      toast({ title: "Profil berhasil diperbarui" });
+      setIsEditUserOpen(false);
+      setSelectedUser(null);
+      setEditFullName("");
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Gagal memperbarui profil", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    }
+  });
+
+  const handleEditUser = (u: UserWithRoles) => {
+    setSelectedUser(u);
+    setEditFullName(u.fullName || "");
+    setIsEditUserOpen(true);
+  };
+
+  const handleSaveProfile = () => {
+    if (selectedUser) {
+      updateProfileMutation.mutate({ userId: selectedUser.id, fullName: editFullName });
+    }
+  };
+
   const getRoleBadge = (role: AppRole) => {
     const config = roleConfig[role];
     const Icon = config.icon;
@@ -194,7 +236,7 @@ export function RoleManagementCard() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Email</TableHead>
+                  <TableHead>Pengguna</TableHead>
                   <TableHead>Roles</TableHead>
                   <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
@@ -203,15 +245,17 @@ export function RoleManagementCard() {
                 {usersWithRoles.map((u) => (
                   <TableRow key={u.id}>
                     <TableCell className="font-medium">
-                      <div>
-                        {u.email}
-                        {u.id === user?.id && (
-                          <Badge variant="secondary" className="ml-2">Anda</Badge>
-                        )}
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">
+                            {u.fullName || <span className="text-muted-foreground italic">Belum ada nama</span>}
+                          </span>
+                          {u.id === user?.id && (
+                            <Badge variant="secondary">Anda</Badge>
+                          )}
+                        </div>
+                        <span className="text-muted-foreground text-sm">{u.email}</span>
                       </div>
-                      {u.fullName && (
-                        <span className="text-muted-foreground text-sm">{u.fullName}</span>
-                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-2">
@@ -238,17 +282,27 @@ export function RoleManagementCard() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedUser(u);
-                          setIsAddRoleOpen(true);
-                        }}
-                      >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Tambah Role
-                      </Button>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditUser(u)}
+                          title="Edit profil"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedUser(u);
+                            setIsAddRoleOpen(true);
+                          }}
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Tambah Role
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -321,6 +375,41 @@ export function RoleManagementCard() {
             >
               {removeRoleMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Hapus
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Profile Dialog */}
+      <Dialog open={isEditUserOpen} onOpenChange={setIsEditUserOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Profil Pengguna</DialogTitle>
+            <DialogDescription>
+              Ubah informasi profil untuk {selectedUser?.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Nama Lengkap</Label>
+              <Input
+                id="fullName"
+                value={editFullName}
+                onChange={(e) => setEditFullName(e.target.value)}
+                placeholder="Masukkan nama lengkap"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditUserOpen(false)}>
+              Batal
+            </Button>
+            <Button 
+              onClick={handleSaveProfile} 
+              disabled={updateProfileMutation.isPending}
+            >
+              {updateProfileMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Simpan
             </Button>
           </DialogFooter>
         </DialogContent>
