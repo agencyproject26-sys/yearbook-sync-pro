@@ -16,6 +16,7 @@ type AppRole = 'admin' | 'owner' | 'staff' | 'calendar_only';
 interface UserWithRoles {
   id: string;
   email: string;
+  fullName: string | null;
   roles: AppRole[];
 }
 
@@ -55,15 +56,16 @@ export function RoleManagementCard() {
   const [newRole, setNewRole] = useState<AppRole | "">("");
   const [deleteConfirm, setDeleteConfirm] = useState<{ userId: string; role: AppRole } | null>(null);
 
-  // Fetch users with roles (approved users only)
+  // Fetch ALL approved users with their roles
   const { data: usersWithRoles = [], isLoading: isLoadingUsers } = useQuery({
     queryKey: ['all-users-roles'],
     queryFn: async () => {
       // Get all approved profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('user_id, email')
-        .eq('is_approved', true);
+        .select('user_id, email, full_name')
+        .eq('is_approved', true)
+        .order('created_at', { ascending: false });
       
       if (profilesError) throw profilesError;
 
@@ -86,6 +88,7 @@ export function RoleManagementCard() {
       const result: UserWithRoles[] = profiles?.map(p => ({
         id: p.user_id,
         email: p.email,
+        fullName: p.full_name,
         roles: roleMap.get(p.user_id) || []
       })) || [];
       
@@ -200,9 +203,14 @@ export function RoleManagementCard() {
                 {usersWithRoles.map((u) => (
                   <TableRow key={u.id}>
                     <TableCell className="font-medium">
-                      {u.email}
-                      {u.id === user?.id && (
-                        <Badge variant="secondary" className="ml-2">Anda</Badge>
+                      <div>
+                        {u.email}
+                        {u.id === user?.id && (
+                          <Badge variant="secondary" className="ml-2">Anda</Badge>
+                        )}
+                      </div>
+                      {u.fullName && (
+                        <span className="text-muted-foreground text-sm">{u.fullName}</span>
                       )}
                     </TableCell>
                     <TableCell>
