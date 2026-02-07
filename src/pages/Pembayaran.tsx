@@ -1086,7 +1086,7 @@ export default function Pembayaran() {
               <div className="overflow-auto border rounded-lg">
                 <ReceiptPreview
                   receiptNumber={getReceiptNumber(selectedPayment)}
-                  receivedFrom={`${selectedPayment.invoices?.customers?.name || ""} ( ${selectedPayment.invoices?.customers?.pic_name || ""} )`}
+                  receivedFrom={`${selectedPayment.invoices?.customers?.name || ""} ( ${selectedPayment.pic_name || selectedPayment.invoices?.customers?.pic_name || ""} )`}
                   amountInWords={numberToWords(selectedPayment.amount) + " rupiah"}
                   paymentDescription={selectedPayment.description || "Pembayaran"}
                   transferAmount={0}
@@ -1121,7 +1121,7 @@ export default function Pembayaran() {
             <ReceiptPreview
               ref={downloadPreviewRef}
               receiptNumber={getReceiptNumber(selectedPayment)}
-              receivedFrom={`${selectedPayment.invoices?.customers?.name || ""} ( ${selectedPayment.invoices?.customers?.pic_name || ""} )`}
+              receivedFrom={`${selectedPayment.invoices?.customers?.name || ""} ( ${selectedPayment.pic_name || selectedPayment.invoices?.customers?.pic_name || ""} )`}
               amountInWords={numberToWords(selectedPayment.amount) + " rupiah"}
               paymentDescription={selectedPayment.description || "Pembayaran"}
               transferAmount={0}
