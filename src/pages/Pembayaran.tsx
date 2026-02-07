@@ -144,6 +144,7 @@ export default function Pembayaran() {
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [editPicName, setEditPicName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Proof image states
@@ -341,12 +342,14 @@ export default function Pembayaran() {
     setEditingRowId(payment.id);
     setEditAmount(String(payment.amount));
     setEditDescription(payment.description || "");
+    setEditPicName(payment.pic_name || payment.invoices?.customers?.pic_name || "");
   };
 
   const handleCancelInlineEdit = () => {
     setEditingRowId(null);
     setEditAmount("");
     setEditDescription("");
+    setEditPicName("");
   };
 
   const handleSaveInlineEdit = async (payment: Payment) => {
@@ -358,6 +361,7 @@ export default function Pembayaran() {
       description: editDescription,
       payment_date: payment.payment_date,
       proof_link: payment.proof_link || undefined,
+      pic_name: editPicName || undefined,
     });
     setIsSubmitting(false);
     
@@ -691,7 +695,23 @@ export default function Pembayaran() {
                               return (
                                 <tr key={payment.id}>
                                   <td className="font-medium">{payment.receipt_number}</td>
-                                  <td className="text-muted-foreground">{payment.invoices?.customers?.pic_name || "-"}</td>
+                                  <td>
+                                    {isEditing ? (
+                                      <Input
+                                        value={editPicName}
+                                        onChange={(e) => setEditPicName(e.target.value)}
+                                        placeholder="Nama PIC"
+                                        className="h-8 w-32"
+                                      />
+                                    ) : (
+                                      <span 
+                                        className="text-muted-foreground cursor-pointer hover:text-primary transition-colors"
+                                        onClick={() => handleStartInlineEdit(payment)}
+                                      >
+                                        {payment.pic_name || payment.invoices?.customers?.pic_name || "-"}
+                                      </span>
+                                    )}
+                                  </td>
                                   <td>
                                     {isEditing ? (
                                       <Input
