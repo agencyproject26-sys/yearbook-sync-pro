@@ -18,27 +18,56 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 
-const menuItems = [
+interface MenuItem {
+  icon: typeof LayoutDashboard;
+  label: string;
+  path: string;
+  roles?: ('admin' | 'owner' | 'staff' | 'calendar_only')[];
+}
+
+const allMenuItems: MenuItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
   { icon: Users, label: "Pelanggan", path: "/pelanggan" },
   { icon: Package, label: "Order", path: "/order" },
   { icon: Calendar, label: "Kalender", path: "/kalender" },
   { icon: FileText, label: "Invoice", path: "/invoice" },
   { icon: Receipt, label: "Pembayaran", path: "/pembayaran" },
-  { icon: Wallet, label: "Gaji Karyawan", path: "/gaji" },
+  { icon: Wallet, label: "Gaji Karyawan", path: "/gaji", roles: ['admin', 'owner'] },
   { icon: BarChart3, label: "Laporan", path: "/laporan" },
   { icon: Trash2, label: "Recycle Bin", path: "/recycle-bin" },
 ];
 
-const bottomItems = [
-  { icon: Settings, label: "Pengaturan", path: "/pengaturan" },
+const bottomItems: MenuItem[] = [
+  { icon: Settings, label: "Pengaturan", path: "/pengaturan", roles: ['admin'] },
 ];
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, signOut, roles } = useAuth();
+  const { user, signOut, roles, hasRole } = useAuth();
+
+  // Check if user is calendar_only (only has calendar_only role)
+  const isCalendarOnly = roles.length === 1 && hasRole('calendar_only');
+
+  // Filter menu items based on user roles
+  const menuItems = allMenuItems.filter(item => {
+    // If calendar_only user, only show Kalender
+    if (isCalendarOnly) {
+      return item.path === '/kalender';
+    }
+    // If no specific roles required, show to all
+    if (!item.roles) return true;
+    // Otherwise check if user has any of the required roles
+    return item.roles.some(role => hasRole(role));
+  });
+
+  // Filter bottom items based on roles
+  const filteredBottomItems = bottomItems.filter(item => {
+    if (isCalendarOnly) return false;
+    if (!item.roles) return true;
+    return item.roles.some(role => hasRole(role));
+  });
 
   const handleLogout = async () => {
     await signOut();
@@ -54,6 +83,7 @@ export function Sidebar() {
     if (roles.includes('admin')) return 'Admin';
     if (roles.includes('owner')) return 'Owner';
     if (roles.includes('staff')) return 'Staff';
+    if (roles.includes('calendar_only')) return 'Kalender Only';
     return 'User';
   };
 
@@ -137,7 +167,7 @@ export function Sidebar() {
 
       {/* Bottom Section */}
       <div className="border-t border-sidebar-border p-4 space-y-1.5">
-        {bottomItems.map((item) => {
+        {filteredBottomItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
             <Link
@@ -156,7 +186,7 @@ export function Sidebar() {
         })}
         <button
           onClick={handleLogout}
-          className="sidebar-item w-full text-red-400 hover:bg-red-500/10 hover:text-red-300"
+          className="sidebar-item w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
           title={collapsed ? "Keluar" : undefined}
         >
           <LogOut className="h-5 w-5 flex-shrink-0" />

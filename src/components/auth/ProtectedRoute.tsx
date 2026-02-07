@@ -6,7 +6,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, loading } = useAuth();
+  const { user, loading, roles, hasRole } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -19,6 +19,15 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Check if user only has calendar_only role
+  const isCalendarOnly = roles.length === 1 && hasRole('calendar_only');
+  const calendarPaths = ['/kalender', '/kalender-publik'];
+  
+  // If user is calendar_only and trying to access non-calendar pages, redirect to calendar
+  if (isCalendarOnly && !calendarPaths.includes(location.pathname)) {
+    return <Navigate to="/kalender" replace />;
   }
 
   return <>{children}</>;
