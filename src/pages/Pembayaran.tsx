@@ -89,6 +89,15 @@ const numberToWords = (num: number): string => {
   return convertLessThanThousand(Math.floor(num / 1000000000)) + " miliar" + (num % 1000000000 !== 0 ? " " + numberToWords(num % 1000000000) : "");
 };
 
+interface PaymentTerm {
+  id: string;
+  name: string;
+  percentage: number;
+  amount: number;
+  date: string;
+  paid: boolean;
+}
+
 interface FormData {
   receipt_number: string;
   invoice_id: string;
@@ -99,6 +108,7 @@ interface FormData {
   cash_amount: string;
   date: string;
   description: string;
+  selected_termin_id: string;
 }
 
 const emptyFormData: FormData = {
@@ -111,6 +121,7 @@ const emptyFormData: FormData = {
   cash_amount: "",
   date: "",
   description: "",
+  selected_termin_id: "",
 };
 
 export default function Pembayaran() {
@@ -222,6 +233,7 @@ export default function Pembayaran() {
       cash_amount: "",
       date: payment.payment_date,
       description: payment.description || "",
+      selected_termin_id: "",
     });
     setIsDialogOpen(true);
   };
@@ -229,6 +241,25 @@ export default function Pembayaran() {
   const openDeleteDialog = (payment: Payment) => {
     setSelectedPayment(payment);
     setIsDeleteDialogOpen(true);
+  };
+
+  // Get payment terms for selected invoice
+  const getSelectedInvoiceTerms = (): PaymentTerm[] => {
+    if (!formData.invoice_id) return [];
+    const invoice = invoices.find(i => i.id === formData.invoice_id);
+    if (!invoice || !invoice.payment_terms) return [];
+    
+    // Parse payment_terms from JSON
+    const terms = invoice.payment_terms as PaymentTerm[];
+    return Array.isArray(terms) ? terms : [];
+  };
+
+  // Get remaining amount for selected invoice
+  const getSelectedInvoiceRemaining = (): number => {
+    if (!formData.invoice_id) return 0;
+    const invoice = invoices.find(i => i.id === formData.invoice_id);
+    if (!invoice) return 0;
+    return getInvoiceRemaining(invoice, payments);
   };
 
   const handleInvoiceSelect = (invoiceId: string) => {
@@ -239,6 +270,23 @@ export default function Pembayaran() {
         invoice_id: invoiceId,
         school: invoice.customers?.name || "",
         customer: invoice.customers?.pic_name || "",
+        amount: "",
+        selected_termin_id: "",
+        description: "",
+      }));
+    }
+  };
+
+  const handleTerminSelect = (terminId: string) => {
+    const terms = getSelectedInvoiceTerms();
+    const selectedTerm = terms.find(t => t.id === terminId);
+    
+    if (selectedTerm) {
+      setFormData(prev => ({
+        ...prev,
+        selected_termin_id: terminId,
+        amount: String(selectedTerm.amount),
+        description: `Pembayaran ${selectedTerm.name}`,
       }));
     }
   };
@@ -858,14 +906,71 @@ export default function Pembayaran() {
                     <SelectValue placeholder="Pilih invoice" />
                   </SelectTrigger>
                   <SelectContent>
-                    {invoices.map(inv => (
-                      <SelectItem key={inv.id} value={inv.id}>
-                        {inv.invoice_number} - {inv.customers?.name || "Unknown"}
-                      </SelectItem>
-                    ))}
+                    {invoices.map(inv => {
+                      const remaining = getInvoiceRemaining(inv, payments);
+                      return (
+                        <SelectItem key={inv.id} value={inv.id}>
+                          <div className="flex flex-col">
+                            <span>{inv.invoice_number} - {inv.customers?.name || "Unknown"}</span>
+                            <span className="text-xs text-muted-foreground">
+                              Sisa: {formatCurrency(remaining)}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Invoice Info Summary */}
+              {formData.invoice_id && (
+                <div className="rounded-lg border border-border bg-muted/50 p-3 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Total Invoice:</span>
+                    <span className="font-medium">{formatCurrency(Number(invoices.find(i => i.id === formData.invoice_id)?.amount || 0))}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Sudah Dibayar:</span>
+                    <span className="font-medium text-success">{formatCurrency(getInvoicePaidAmount(formData.invoice_id, payments))}</span>
+                  </div>
+                  <div className="flex justify-between text-sm border-t border-border pt-2">
+                    <span className="text-muted-foreground">Sisa Tagihan:</span>
+                    <span className={`font-semibold ${getSelectedInvoiceRemaining() > 0 ? 'text-warning' : 'text-success'}`}>
+                      {formatCurrency(getSelectedInvoiceRemaining())}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Payment Terms Selection */}
+              {formData.invoice_id && getSelectedInvoiceTerms().length > 0 && (
+                <div className="grid gap-2">
+                  <Label>Pilih Termin (Opsional)</Label>
+                  <Select value={formData.selected_termin_id} onValueChange={handleTerminSelect}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih termin pembayaran" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getSelectedInvoiceTerms().map(term => (
+                        <SelectItem key={term.id} value={term.id}>
+                          <div className="flex items-center gap-2">
+                            <span>{term.name} ({term.percentage}%)</span>
+                            <span className="text-muted-foreground">- {formatCurrency(term.amount)}</span>
+                            {term.paid && (
+                              <Badge variant="outline" className="ml-1 text-xs">Lunas</Badge>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Pilih termin untuk mengisi otomatis jumlah pembayaran
+                  </p>
+                </div>
+              )}
+
               <div className="grid gap-2">
                 <Label>Jumlah Pembayaran *</Label>
                 <Input 
@@ -874,6 +979,11 @@ export default function Pembayaran() {
                   value={formData.amount}
                   onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
                 />
+                {formData.amount && (
+                  <p className="text-xs text-muted-foreground">
+                    Terbilang: {numberToWords(parseFloat(formData.amount) || 0)} rupiah
+                  </p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
