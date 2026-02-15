@@ -4,6 +4,7 @@ import { Navigate } from "react-router-dom";
 import { PendingUsersCard } from "@/components/settings/PendingUsersCard";
 import { RoleManagementCard } from "@/components/settings/RoleManagementCard";
 import { RoleLegendCard } from "@/components/settings/RoleLegendCard";
+import { DataMigrationCard } from "@/components/settings/DataMigrationCard";
 
 export default function Pengaturan() {
   const { hasRole } = useAuth();
@@ -35,6 +36,9 @@ export default function Pengaturan() {
 
         {/* Role Management */}
         <RoleManagementCard />
+
+        {/* Data Migration */}
+        <DataMigrationCard />
       </div>
     </MainLayout>
   );
