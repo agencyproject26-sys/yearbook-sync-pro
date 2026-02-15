@@ -2,3 +2,6 @@ project_id = "zysjzynkppzamqsmqnlj"
 
 [functions.export-data]
 verify_jwt = false
+
+[functions.import-data]
+verify_jwt = false
