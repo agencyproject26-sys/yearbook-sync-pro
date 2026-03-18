@@ -57,13 +57,6 @@ const designStatusConfig: Record<DesignStatus, { label: string; className: strin
   selesai: { label: "Selesai", className: "bg-success/15 text-success" },
 };
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-  }).format(value);
-};
 
 const emptyFormData: OrderFormData = {
   customer_id: "",
