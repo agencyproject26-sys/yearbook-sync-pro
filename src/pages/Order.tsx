@@ -76,8 +76,6 @@ export default function Order() {
   
   // Edit dialogs
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
-  const [isMouDialogOpen, setIsMouDialogOpen] = useState(false);
-  const [mouLink, setMouLink] = useState("");
   const [isWaGroupDialogOpen, setIsWaGroupDialogOpen] = useState(false);
   const [waGroupLink, setWaGroupLink] = useState("");
   const [isGmailDialogOpen, setIsGmailDialogOpen] = useState(false);
