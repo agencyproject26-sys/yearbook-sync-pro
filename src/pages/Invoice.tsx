@@ -135,6 +135,11 @@ export default function Invoice() {
   const [mouEditingInvoice, setMouEditingInvoice] = useState<Invoice | null>(null);
   const [mouLink, setMouLink] = useState("");
   
+  // Edit Items state
+  const [isEditItemsDialogOpen, setIsEditItemsDialogOpen] = useState(false);
+  const [editItemsInvoice, setEditItemsInvoice] = useState<Invoice | null>(null);
+  const [editItems, setEditItems] = useState<InvoiceItem[]>([]);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const signatureInputRef = useRef<HTMLInputElement>(null);
   const invoicePreviewRef = useRef<HTMLDivElement>(null);
@@ -395,6 +400,49 @@ export default function Invoice() {
     setIsSubmitting(false);
     setIsMouDialogOpen(false);
     setMouEditingInvoice(null);
+  };
+
+  // Edit Items handlers
+  const handleOpenEditItems = (invoice: Invoice) => {
+    setEditItemsInvoice(invoice);
+    const items = (invoice.items || []).map((item: any) => ({
+      description: item.description || "",
+      qty: String(item.qty || ""),
+      price: String(item.price || ""),
+    }));
+    setEditItems(items.length > 0 ? items : [{ description: "", qty: "", price: "" }]);
+    setIsEditItemsDialogOpen(true);
+  };
+
+  const handleEditItemChange = (index: number, field: keyof InvoiceItem, value: string) => {
+    const newItems = [...editItems];
+    newItems[index][field] = value;
+    setEditItems(newItems);
+  };
+
+  const handleAddEditItem = () => {
+    setEditItems(prev => [...prev, { description: "", qty: "", price: "" }]);
+  };
+
+  const handleRemoveEditItem = (index: number) => {
+    if (editItems.length > 1) {
+      setEditItems(prev => prev.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleSaveEditItems = async () => {
+    if (!editItemsInvoice) return;
+    setIsSubmitting(true);
+    const parsedItems = editItems.map(item => ({
+      description: item.description,
+      qty: parseFloat(item.qty) || 0,
+      price: parseFloat(item.price) || 0,
+    }));
+    const totalAmount = parsedItems.reduce((sum, item) => sum + (item.qty * item.price), 0);
+    await updateInvoice(editItemsInvoice.id, { items: parsedItems, amount: totalAmount } as any);
+    setIsSubmitting(false);
+    setIsEditItemsDialogOpen(false);
+    setEditItemsInvoice(null);
   };
 
   const openExternalLink = (url: string) => {
@@ -847,6 +895,10 @@ export default function Invoice() {
                                 <DropdownMenuItem onClick={() => handleDownloadPDF(invoice)}>
                                   <FileDown className="mr-2 h-4 w-4" />
                                   Download PDF
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOpenEditItems(invoice)}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Edit Item
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleOpenTerminDialog(invoice)}>
                                   <Pencil className="mr-2 h-4 w-4" />
@@ -1388,6 +1440,75 @@ export default function Invoice() {
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsMouDialogOpen(false)}>Batal</Button>
               <Button onClick={handleSaveMouLink} disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Simpan
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Items Dialog */}
+        <Dialog open={isEditItemsDialogOpen} onOpenChange={(open) => { setIsEditItemsDialogOpen(open); if (!open) setEditItemsInvoice(null); }}>
+          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Item Invoice</DialogTitle>
+              <DialogDescription>
+                Edit item untuk {editItemsInvoice?.invoice_number} - {editItemsInvoice?.customers?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              {editItems.map((item, index) => (
+                <div key={index} className="grid grid-cols-12 gap-2 items-end">
+                  <div className="col-span-6 grid gap-1">
+                    {index === 0 && <Label className="text-xs">Deskripsi</Label>}
+                    <Input
+                      placeholder="Deskripsi item"
+                      value={item.description}
+                      onChange={(e) => handleEditItemChange(index, "description", e.target.value)}
+                    />
+                  </div>
+                  <div className="col-span-2 grid gap-1">
+                    {index === 0 && <Label className="text-xs">Qty</Label>}
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={item.qty}
+                      onChange={(e) => handleEditItemChange(index, "qty", e.target.value)}
+                    />
+                  </div>
+                  <div className="col-span-3 grid gap-1">
+                    {index === 0 && <Label className="text-xs">Harga</Label>}
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={item.price}
+                      onChange={(e) => handleEditItemChange(index, "price", e.target.value)}
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveEditItem(index)}
+                      disabled={editItems.length <= 1}
+                      className="h-9 w-9"
+                    >
+                      <X className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              <Button variant="outline" onClick={handleAddEditItem} className="w-full">
+                <Plus className="mr-2 h-4 w-4" />
+                Tambah Item
+              </Button>
+              <div className="text-right font-semibold text-lg">
+                Total: {formatCurrency(editItems.reduce((sum, item) => sum + ((parseFloat(item.qty) || 0) * (parseFloat(item.price) || 0)), 0))}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditItemsDialogOpen(false)}>Batal</Button>
+              <Button onClick={handleSaveEditItems} disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Simpan
               </Button>
