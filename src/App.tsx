@@ -15,7 +15,6 @@ import Pembayaran from "./pages/Pembayaran";
 import Gaji from "./pages/Gaji";
 import Laporan from "./pages/Laporan";
 import RecycleBin from "./pages/RecycleBin";
-import Case from "./pages/Case";
 import Pengaturan from "./pages/Pengaturan";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -45,7 +44,6 @@ const App = () => (
             <Route path="/pembayaran" element={<ProtectedRoute><Pembayaran /></ProtectedRoute>} />
             <Route path="/gaji" element={<ProtectedRoute><Gaji /></ProtectedRoute>} />
             <Route path="/laporan" element={<ProtectedRoute><Laporan /></ProtectedRoute>} />
-            <Route path="/case" element={<ProtectedRoute><Case /></ProtectedRoute>} />
             <Route path="/recycle-bin" element={<ProtectedRoute><RecycleBin /></ProtectedRoute>} />
             <Route path="/pengaturan" element={<ProtectedRoute><Pengaturan /></ProtectedRoute>} />
             
