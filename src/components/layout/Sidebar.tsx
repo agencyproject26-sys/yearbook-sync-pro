@@ -14,7 +14,7 @@ import {
   ChevronRight,
   LogOut,
   Trash2,
-  Briefcase,
+  
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -35,7 +35,7 @@ const allMenuItems: MenuItem[] = [
   { icon: Receipt, label: "Pembayaran", path: "/pembayaran" },
   { icon: Wallet, label: "Gaji Karyawan", path: "/gaji", roles: ['admin', 'owner'] },
   { icon: BarChart3, label: "Laporan", path: "/laporan" },
-  { icon: Briefcase, label: "Case", path: "/case" },
+  
   { icon: Trash2, label: "Recycle Bin", path: "/recycle-bin" },
 ];
 
