@@ -147,6 +147,7 @@ export type Database = {
           invoice_number: string
           issue_date: string | null
           items: Json | null
+          mou_link: string | null
           payment_terms: Json | null
           pelunasan_amount: number | null
           pelunasan_date: string | null
@@ -165,6 +166,7 @@ export type Database = {
           invoice_number: string
           issue_date?: string | null
           items?: Json | null
+          mou_link?: string | null
           payment_terms?: Json | null
           pelunasan_amount?: number | null
           pelunasan_date?: string | null
@@ -183,6 +185,7 @@ export type Database = {
           invoice_number?: string
           issue_date?: string | null
           items?: Json | null
+          mou_link?: string | null
           payment_terms?: Json | null
           pelunasan_amount?: number | null
           pelunasan_date?: string | null
