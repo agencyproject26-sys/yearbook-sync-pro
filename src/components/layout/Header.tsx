@@ -1,4 +1,4 @@
-import { Bell, Search, Plus, FileText, CreditCard, Package, AlertTriangle, Clock } from "lucide-react";
+import { Bell, Search, Plus, CreditCard, Package, AlertTriangle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
