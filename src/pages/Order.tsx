@@ -1061,15 +1061,9 @@ export default function Order() {
                   </Badge>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Nilai Order</p>
-                  <p className="font-medium">{formatCurrency(viewingOrder?.value || 0)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Tanggal Dibuat</p>
-                  <p className="font-medium">{viewingOrder?.created_at ? new Date(viewingOrder.created_at).toLocaleDateString("id-ID") : "-"}</p>
-                </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Tanggal Dibuat</p>
+                <p className="font-medium">{viewingOrder?.created_at ? new Date(viewingOrder.created_at).toLocaleDateString("id-ID") : "-"}</p>
               </div>
               {viewingOrder?.gmail_email && (
                 <div>
