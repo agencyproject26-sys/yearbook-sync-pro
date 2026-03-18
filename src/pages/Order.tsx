@@ -676,16 +676,6 @@ export default function Order() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="value">Nilai Order (Rp) *</Label>
-                  <Input 
-                    id="value" 
-                    type="number" 
-                    placeholder="45000000" 
-                    value={formData.value || ""}
-                    onChange={(e) => setFormData(prev => ({ ...prev, value: parseFloat(e.target.value) || 0 }))}
-                  />
-                </div>
               </div>
 
 
