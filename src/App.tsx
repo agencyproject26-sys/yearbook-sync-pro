@@ -15,6 +15,7 @@ import Pembayaran from "./pages/Pembayaran";
 import Gaji from "./pages/Gaji";
 import Laporan from "./pages/Laporan";
 import RecycleBin from "./pages/RecycleBin";
+import Case from "./pages/Case";
 import Pengaturan from "./pages/Pengaturan";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
