@@ -130,6 +130,11 @@ export default function Invoice() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null);
   
+  // MOU state
+  const [isMouDialogOpen, setIsMouDialogOpen] = useState(false);
+  const [mouEditingInvoice, setMouEditingInvoice] = useState<Invoice | null>(null);
+  const [mouLink, setMouLink] = useState("");
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const signatureInputRef = useRef<HTMLInputElement>(null);
   const invoicePreviewRef = useRef<HTMLDivElement>(null);
