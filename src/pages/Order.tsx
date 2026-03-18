@@ -109,7 +109,7 @@ export default function Order() {
     return matchesSearch && matchesStatus;
   });
 
-  const totalValue = filteredOrders.reduce((sum, order) => sum + Number(order.value), 0);
+  
 
   const handleSubmit = async () => {
     if (!formData.customer_id || !formData.value) return;
