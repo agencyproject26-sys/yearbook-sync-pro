@@ -58,6 +58,72 @@ export type Database = {
           },
         ]
       }
+      cases: {
+        Row: {
+          assigned_to: string | null
+          case_number: string
+          closed_at: string | null
+          created_at: string
+          customer_id: string | null
+          deleted_at: string | null
+          description: string | null
+          id: string
+          order_id: string | null
+          priority: string
+          resolution: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          case_number: string
+          closed_at?: string | null
+          created_at?: string
+          customer_id?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          order_id?: string | null
+          priority?: string
+          resolution?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          case_number?: string
+          closed_at?: string | null
+          created_at?: string
+          customer_id?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          order_id?: string | null
+          priority?: string
+          resolution?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cases_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cases_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_settings: {
         Row: {
           created_at: string
