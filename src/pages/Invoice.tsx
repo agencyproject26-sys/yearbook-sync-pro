@@ -381,7 +381,26 @@ export default function Invoice() {
     setInvoiceToDelete(null);
   };
 
-  // Inline edit handlers
+  // MOU Dialog handlers
+  const handleOpenMouDialog = (invoice: Invoice) => {
+    setMouEditingInvoice(invoice);
+    setMouLink(invoice.mou_link || "");
+    setIsMouDialogOpen(true);
+  };
+
+  const handleSaveMouLink = async () => {
+    if (!mouEditingInvoice) return;
+    setIsSubmitting(true);
+    await updateInvoice(mouEditingInvoice.id, { mou_link: mouLink || null } as any);
+    setIsSubmitting(false);
+    setIsMouDialogOpen(false);
+    setMouEditingInvoice(null);
+  };
+
+  const openExternalLink = (url: string) => {
+    window.open(url, "_blank");
+  };
+
   const handleStartEdit = (invoice: Invoice) => {
     setEditingInvoiceId(invoice.id);
     setEditInvoiceNumber(invoice.invoice_number);
