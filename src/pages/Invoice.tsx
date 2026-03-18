@@ -621,6 +621,7 @@ export default function Invoice() {
                 <TableHead>Pelanggan</TableHead>
                 <TableHead className="text-right">Total Invoice</TableHead>
                 <TableHead>Tahap Pembayaran</TableHead>
+                <TableHead className="text-center">MOU</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-[100px]"></TableHead>
               </TableRow>
