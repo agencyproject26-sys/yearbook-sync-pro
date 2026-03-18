@@ -1109,14 +1109,6 @@ export default function Order() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid gap-2">
-                  <Label>Nilai Order (Rp)</Label>
-                  <Input 
-                    type="number"
-                    value={editOrderData.value || ""}
-                    onChange={(e) => setEditOrderData(prev => ({ ...prev, value: parseFloat(e.target.value) || 0 }))}
-                  />
-                </div>
               </div>
               <div className="grid gap-2">
                 <Label>Catatan Internal</Label>
