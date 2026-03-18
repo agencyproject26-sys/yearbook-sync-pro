@@ -382,8 +382,8 @@ export default function Order() {
             <p className="text-2xl font-bold text-warning">{orders.filter(o => o.status === "desain").length}</p>
           </div>
           <div className="rounded-xl border border-border bg-card p-4">
-            <p className="text-sm text-muted-foreground">Total Nilai</p>
-            <p className="text-2xl font-bold text-success">{formatCurrency(totalValue)}</p>
+            <p className="text-sm text-muted-foreground">Selesai</p>
+            <p className="text-2xl font-bold text-success">{orders.filter(o => o.status === "selesai").length}</p>
           </div>
         </div>
 
