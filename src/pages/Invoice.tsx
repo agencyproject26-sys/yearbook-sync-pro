@@ -135,6 +135,11 @@ export default function Invoice() {
   const [mouEditingInvoice, setMouEditingInvoice] = useState<Invoice | null>(null);
   const [mouLink, setMouLink] = useState("");
   
+  // Edit Items state
+  const [isEditItemsDialogOpen, setIsEditItemsDialogOpen] = useState(false);
+  const [editItemsInvoice, setEditItemsInvoice] = useState<Invoice | null>(null);
+  const [editItems, setEditItems] = useState<InvoiceItem[]>([]);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const signatureInputRef = useRef<HTMLInputElement>(null);
   const invoicePreviewRef = useRef<HTMLDivElement>(null);
