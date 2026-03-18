@@ -1446,6 +1446,75 @@ export default function Invoice() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Edit Items Dialog */}
+        <Dialog open={isEditItemsDialogOpen} onOpenChange={(open) => { setIsEditItemsDialogOpen(open); if (!open) setEditItemsInvoice(null); }}>
+          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Item Invoice</DialogTitle>
+              <DialogDescription>
+                Edit item untuk {editItemsInvoice?.invoice_number} - {editItemsInvoice?.customers?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              {editItems.map((item, index) => (
+                <div key={index} className="grid grid-cols-12 gap-2 items-end">
+                  <div className="col-span-6 grid gap-1">
+                    {index === 0 && <Label className="text-xs">Deskripsi</Label>}
+                    <Input
+                      placeholder="Deskripsi item"
+                      value={item.description}
+                      onChange={(e) => handleEditItemChange(index, "description", e.target.value)}
+                    />
+                  </div>
+                  <div className="col-span-2 grid gap-1">
+                    {index === 0 && <Label className="text-xs">Qty</Label>}
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={item.qty}
+                      onChange={(e) => handleEditItemChange(index, "qty", e.target.value)}
+                    />
+                  </div>
+                  <div className="col-span-3 grid gap-1">
+                    {index === 0 && <Label className="text-xs">Harga</Label>}
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={item.price}
+                      onChange={(e) => handleEditItemChange(index, "price", e.target.value)}
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveEditItem(index)}
+                      disabled={editItems.length <= 1}
+                      className="h-9 w-9"
+                    >
+                      <X className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              <Button variant="outline" onClick={handleAddEditItem} className="w-full">
+                <Plus className="mr-2 h-4 w-4" />
+                Tambah Item
+              </Button>
+              <div className="text-right font-semibold text-lg">
+                Total: {formatCurrency(editItems.reduce((sum, item) => sum + ((parseFloat(item.qty) || 0) * (parseFloat(item.price) || 0)), 0))}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditItemsDialogOpen(false)}>Batal</Button>
+              <Button onClick={handleSaveEditItems} disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Simpan
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </MainLayout>
   );
