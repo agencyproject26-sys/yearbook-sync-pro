@@ -441,9 +441,6 @@ export default function Order() {
                         <p className="text-xs text-muted-foreground">{order.order_number}</p>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatCurrency(order.value)}
-                    </TableCell>
                     <TableCell className="text-center">
                       <div className="flex items-center justify-center gap-1">
                         <Button
