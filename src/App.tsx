@@ -16,7 +16,6 @@ import Gaji from "./pages/Gaji";
 import Laporan from "./pages/Laporan";
 import RecycleBin from "./pages/RecycleBin";
 import Pengaturan from "./pages/Pengaturan";
-import Case from "./pages/Case";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
@@ -46,7 +45,6 @@ const App = () => (
             <Route path="/gaji" element={<ProtectedRoute><Gaji /></ProtectedRoute>} />
             <Route path="/laporan" element={<ProtectedRoute><Laporan /></ProtectedRoute>} />
             <Route path="/recycle-bin" element={<ProtectedRoute><RecycleBin /></ProtectedRoute>} />
-            <Route path="/case" element={<ProtectedRoute><Case /></ProtectedRoute>} />
             <Route path="/pengaturan" element={<ProtectedRoute><Pengaturan /></ProtectedRoute>} />
             
             {/* Catch-all route */}
