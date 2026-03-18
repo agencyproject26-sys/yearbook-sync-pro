@@ -402,7 +402,49 @@ export default function Invoice() {
     setMouEditingInvoice(null);
   };
 
-  const openExternalLink = (url: string) => {
+  // Edit Items handlers
+  const handleOpenEditItems = (invoice: Invoice) => {
+    setEditItemsInvoice(invoice);
+    const items = (invoice.items || []).map((item: any) => ({
+      description: item.description || "",
+      qty: String(item.qty || ""),
+      price: String(item.price || ""),
+    }));
+    setEditItems(items.length > 0 ? items : [{ description: "", qty: "", price: "" }]);
+    setIsEditItemsDialogOpen(true);
+  };
+
+  const handleEditItemChange = (index: number, field: keyof InvoiceItem, value: string) => {
+    const newItems = [...editItems];
+    newItems[index][field] = value;
+    setEditItems(newItems);
+  };
+
+  const handleAddEditItem = () => {
+    setEditItems(prev => [...prev, { description: "", qty: "", price: "" }]);
+  };
+
+  const handleRemoveEditItem = (index: number) => {
+    if (editItems.length > 1) {
+      setEditItems(prev => prev.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleSaveEditItems = async () => {
+    if (!editItemsInvoice) return;
+    setIsSubmitting(true);
+    const parsedItems = editItems.map(item => ({
+      description: item.description,
+      qty: parseFloat(item.qty) || 0,
+      price: parseFloat(item.price) || 0,
+    }));
+    const totalAmount = parsedItems.reduce((sum, item) => sum + (item.qty * item.price), 0);
+    await updateInvoice(editItemsInvoice.id, { items: parsedItems, amount: totalAmount } as any);
+    setIsSubmitting(false);
+    setIsEditItemsDialogOpen(false);
+    setEditItemsInvoice(null);
+  };
+
     window.open(url, "_blank");
   };
 
