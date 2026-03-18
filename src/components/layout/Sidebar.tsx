@@ -14,6 +14,7 @@ import {
   ChevronRight,
   LogOut,
   Trash2,
+  Headphones,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
