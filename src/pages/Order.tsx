@@ -421,7 +421,7 @@ export default function Order() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nama Pelanggan</TableHead>
-                <TableHead className="text-right">Nilai Order</TableHead>
+                
                 <TableHead className="text-center">MOU</TableHead>
                 <TableHead className="text-center">Grup WhatsApp</TableHead>
                 <TableHead className="text-center">Design Cover</TableHead>
