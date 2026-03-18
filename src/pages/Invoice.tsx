@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, Filter, MoreHorizontal, Eye, Plus, Loader2, Pencil, Trash2, ImageIcon, Settings, Check, FileDown, X } from "lucide-react";
+import { Search, Filter, MoreHorizontal, Eye, Plus, Loader2, Pencil, Trash2, ImageIcon, Settings, Check, FileDown, X, FileText, ExternalLink } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { MainLayout } from "@/components/layout/MainLayout";
