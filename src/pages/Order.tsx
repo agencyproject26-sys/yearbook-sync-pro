@@ -57,13 +57,6 @@ const designStatusConfig: Record<DesignStatus, { label: string; className: strin
   selesai: { label: "Selesai", className: "bg-success/15 text-success" },
 };
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-  }).format(value);
-};
 
 const emptyFormData: OrderFormData = {
   customer_id: "",
@@ -116,7 +109,7 @@ export default function Order() {
     return matchesSearch && matchesStatus;
   });
 
-  const totalValue = filteredOrders.reduce((sum, order) => sum + Number(order.value), 0);
+  
 
   const handleSubmit = async () => {
     if (!formData.customer_id || !formData.value) return;
@@ -382,8 +375,8 @@ export default function Order() {
             <p className="text-2xl font-bold text-warning">{orders.filter(o => o.status === "desain").length}</p>
           </div>
           <div className="rounded-xl border border-border bg-card p-4">
-            <p className="text-sm text-muted-foreground">Total Nilai</p>
-            <p className="text-2xl font-bold text-success">{formatCurrency(totalValue)}</p>
+            <p className="text-sm text-muted-foreground">Selesai</p>
+            <p className="text-2xl font-bold text-success">{orders.filter(o => o.status === "selesai").length}</p>
           </div>
         </div>
 
@@ -421,7 +414,7 @@ export default function Order() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nama Pelanggan</TableHead>
-                <TableHead className="text-right">Nilai Order</TableHead>
+                
                 <TableHead className="text-center">MOU</TableHead>
                 <TableHead className="text-center">Grup WhatsApp</TableHead>
                 <TableHead className="text-center">Design Cover</TableHead>
@@ -440,9 +433,6 @@ export default function Order() {
                         <p className="font-medium">{order.customers?.name}</p>
                         <p className="text-xs text-muted-foreground">{order.order_number}</p>
                       </div>
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatCurrency(order.value)}
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="flex items-center justify-center gap-1">
@@ -679,16 +669,6 @@ export default function Order() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="value">Nilai Order (Rp) *</Label>
-                  <Input 
-                    id="value" 
-                    type="number" 
-                    placeholder="45000000" 
-                    value={formData.value || ""}
-                    onChange={(e) => setFormData(prev => ({ ...prev, value: parseFloat(e.target.value) || 0 }))}
-                  />
-                </div>
               </div>
 
 
@@ -707,7 +687,7 @@ export default function Order() {
               <Button variant="outline" onClick={() => handleDialogClose(false)}>
                 Batal
               </Button>
-              <Button onClick={handleSubmit} disabled={!formData.customer_id || !formData.value || isSubmitting}>
+              <Button onClick={handleSubmit} disabled={!formData.customer_id || isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Buat Order
               </Button>
@@ -1074,15 +1054,9 @@ export default function Order() {
                   </Badge>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Nilai Order</p>
-                  <p className="font-medium">{formatCurrency(viewingOrder?.value || 0)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Tanggal Dibuat</p>
-                  <p className="font-medium">{viewingOrder?.created_at ? new Date(viewingOrder.created_at).toLocaleDateString("id-ID") : "-"}</p>
-                </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Tanggal Dibuat</p>
+                <p className="font-medium">{viewingOrder?.created_at ? new Date(viewingOrder.created_at).toLocaleDateString("id-ID") : "-"}</p>
               </div>
               {viewingOrder?.gmail_email && (
                 <div>
@@ -1127,14 +1101,6 @@ export default function Order() {
                       <SelectItem value="selesai">Selesai</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label>Nilai Order (Rp)</Label>
-                  <Input 
-                    type="number"
-                    value={editOrderData.value || ""}
-                    onChange={(e) => setEditOrderData(prev => ({ ...prev, value: parseFloat(e.target.value) || 0 }))}
-                  />
                 </div>
               </div>
               <div className="grid gap-2">
