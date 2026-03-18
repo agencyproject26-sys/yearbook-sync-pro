@@ -127,21 +127,6 @@ export default function Order() {
     if (!open) setFormData(emptyFormData);
   };
 
-  // MOU Dialog handlers
-  const handleOpenMouDialog = (order: Order) => {
-    setEditingOrder(order);
-    setMouLink(order.mou_link || "");
-    setIsMouDialogOpen(true);
-  };
-
-  const handleSaveMouLink = async () => {
-    if (!editingOrder) return;
-    setIsLinkSubmitting(true);
-    await updateOrder(editingOrder.id, { mou_link: mouLink || null, has_mou: !!mouLink });
-    setIsLinkSubmitting(false);
-    setIsMouDialogOpen(false);
-    setEditingOrder(null);
-  };
 
   // WhatsApp Group Dialog handlers
   const handleOpenWaGroupDialog = (order: Order) => {
