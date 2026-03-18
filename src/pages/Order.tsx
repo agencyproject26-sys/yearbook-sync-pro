@@ -76,8 +76,6 @@ export default function Order() {
   
   // Edit dialogs
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
-  const [isMouDialogOpen, setIsMouDialogOpen] = useState(false);
-  const [mouLink, setMouLink] = useState("");
   const [isWaGroupDialogOpen, setIsWaGroupDialogOpen] = useState(false);
   const [waGroupLink, setWaGroupLink] = useState("");
   const [isGmailDialogOpen, setIsGmailDialogOpen] = useState(false);
@@ -129,21 +127,6 @@ export default function Order() {
     if (!open) setFormData(emptyFormData);
   };
 
-  // MOU Dialog handlers
-  const handleOpenMouDialog = (order: Order) => {
-    setEditingOrder(order);
-    setMouLink(order.mou_link || "");
-    setIsMouDialogOpen(true);
-  };
-
-  const handleSaveMouLink = async () => {
-    if (!editingOrder) return;
-    setIsLinkSubmitting(true);
-    await updateOrder(editingOrder.id, { mou_link: mouLink || null, has_mou: !!mouLink });
-    setIsLinkSubmitting(false);
-    setIsMouDialogOpen(false);
-    setEditingOrder(null);
-  };
 
   // WhatsApp Group Dialog handlers
   const handleOpenWaGroupDialog = (order: Order) => {
@@ -415,7 +398,7 @@ export default function Order() {
               <TableRow>
                 <TableHead>Nama Pelanggan</TableHead>
                 
-                <TableHead className="text-center">MOU</TableHead>
+                
                 <TableHead className="text-center">Grup WhatsApp</TableHead>
                 <TableHead className="text-center">Design Cover</TableHead>
                 <TableHead className="text-center">Design Isi</TableHead>
@@ -432,28 +415,6 @@ export default function Order() {
                       <div>
                         <p className="font-medium">{order.customers?.name}</p>
                         <p className="text-xs text-muted-foreground">{order.order_number}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenMouDialog(order)}
-                        >
-                          <FileText className="mr-1 h-3 w-3" />
-                          {order.mou_link ? "Edit" : "Add"}
-                        </Button>
-                        {order.mou_link && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-success"
-                            onClick={() => openExternalLink(order.mou_link!)}
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                        )}
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
@@ -695,45 +656,6 @@ export default function Order() {
           </DialogContent>
         </Dialog>
 
-        {/* MOU Dialog */}
-        <Dialog open={isMouDialogOpen} onOpenChange={(open) => { setIsMouDialogOpen(open); if (!open) setEditingOrder(null); }}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Generate MOU</DialogTitle>
-              <DialogDescription>
-                MOU untuk {editingOrder?.customers?.name}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <Button variant="outline" className="w-full" onClick={() => openExternalLink("https://www.canva.com/design/new?template=mou")}>
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Buka Template MOU di Canva
-              </Button>
-              <div className="grid gap-2">
-                <Label>Link MOU (Opsional)</Label>
-                <div className="flex gap-2">
-                  <Input 
-                    placeholder="https://www.canva.com/design/..." 
-                    value={mouLink}
-                    onChange={(e) => setMouLink(e.target.value)}
-                  />
-                  {mouLink && (
-                    <Button variant="ghost" size="icon" onClick={() => openExternalLink(mouLink)}>
-                      <ExternalLink className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsMouDialogOpen(false)}>Batal</Button>
-              <Button onClick={handleSaveMouLink} disabled={isLinkSubmitting}>
-                {isLinkSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Simpan
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         {/* Gmail Dialog */}
         <Dialog open={isGmailDialogOpen} onOpenChange={(open) => { setIsGmailDialogOpen(open); if (!open) setEditingOrder(null); }}>

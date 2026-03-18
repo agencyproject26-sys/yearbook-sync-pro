@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, Filter, MoreHorizontal, Eye, Plus, Loader2, Pencil, Trash2, ImageIcon, Settings, Check, FileDown, X } from "lucide-react";
+import { Search, Filter, MoreHorizontal, Eye, Plus, Loader2, Pencil, Trash2, ImageIcon, Settings, Check, FileDown, X, FileText, ExternalLink } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -129,6 +129,11 @@ export default function Invoice() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null);
+  
+  // MOU state
+  const [isMouDialogOpen, setIsMouDialogOpen] = useState(false);
+  const [mouEditingInvoice, setMouEditingInvoice] = useState<Invoice | null>(null);
+  const [mouLink, setMouLink] = useState("");
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const signatureInputRef = useRef<HTMLInputElement>(null);
@@ -376,7 +381,26 @@ export default function Invoice() {
     setInvoiceToDelete(null);
   };
 
-  // Inline edit handlers
+  // MOU Dialog handlers
+  const handleOpenMouDialog = (invoice: Invoice) => {
+    setMouEditingInvoice(invoice);
+    setMouLink(invoice.mou_link || "");
+    setIsMouDialogOpen(true);
+  };
+
+  const handleSaveMouLink = async () => {
+    if (!mouEditingInvoice) return;
+    setIsSubmitting(true);
+    await updateInvoice(mouEditingInvoice.id, { mou_link: mouLink || null });
+    setIsSubmitting(false);
+    setIsMouDialogOpen(false);
+    setMouEditingInvoice(null);
+  };
+
+  const openExternalLink = (url: string) => {
+    window.open(url, "_blank");
+  };
+
   const handleStartEdit = (invoice: Invoice) => {
     setEditingInvoiceId(invoice.id);
     setEditInvoiceNumber(invoice.invoice_number);
@@ -597,6 +621,7 @@ export default function Invoice() {
                 <TableHead>Pelanggan</TableHead>
                 <TableHead className="text-right">Total Invoice</TableHead>
                 <TableHead>Tahap Pembayaran</TableHead>
+                <TableHead className="text-center">MOU</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-[100px]"></TableHead>
               </TableRow>
@@ -721,6 +746,28 @@ export default function Invoice() {
                           <Pencil className="mr-1 h-3 w-3" />
                           Edit Termin
                         </Button>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenMouDialog(invoice)}
+                        >
+                          <FileText className="mr-1 h-3 w-3" />
+                          {invoice.mou_link ? "Edit" : "Add"}
+                        </Button>
+                        {invoice.mou_link && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-success"
+                            onClick={() => openExternalLink(invoice.mou_link!)}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -1307,6 +1354,46 @@ export default function Invoice() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* MOU Dialog */}
+        <Dialog open={isMouDialogOpen} onOpenChange={(open) => { setIsMouDialogOpen(open); if (!open) setMouEditingInvoice(null); }}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Generate MOU</DialogTitle>
+              <DialogDescription>
+                MOU untuk {mouEditingInvoice?.customers?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <Button variant="outline" className="w-full" onClick={() => openExternalLink("https://www.canva.com/design/new?template=mou")}>
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Buka Template MOU di Canva
+              </Button>
+              <div className="grid gap-2">
+                <Label>Link MOU (Opsional)</Label>
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder="https://www.canva.com/design/..." 
+                    value={mouLink}
+                    onChange={(e) => setMouLink(e.target.value)}
+                  />
+                  {mouLink && (
+                    <Button variant="ghost" size="icon" onClick={() => openExternalLink(mouLink)}>
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsMouDialogOpen(false)}>Batal</Button>
+              <Button onClick={handleSaveMouLink} disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Simpan
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </MainLayout>
   );
