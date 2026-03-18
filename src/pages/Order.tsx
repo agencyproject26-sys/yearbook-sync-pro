@@ -422,28 +422,6 @@ export default function Order() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleOpenMouDialog(order)}
-                        >
-                          <FileText className="mr-1 h-3 w-3" />
-                          {order.mou_link ? "Edit" : "Add"}
-                        </Button>
-                        {order.mou_link && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-success"
-                            onClick={() => openExternalLink(order.mou_link!)}
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
                           onClick={() => handleOpenWaGroupDialog(order)}
                         >
                           <MessageCircle className="mr-1 h-3 w-3" />
