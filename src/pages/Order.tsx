@@ -694,7 +694,7 @@ export default function Order() {
               <Button variant="outline" onClick={() => handleDialogClose(false)}>
                 Batal
               </Button>
-              <Button onClick={handleSubmit} disabled={!formData.customer_id || !formData.value || isSubmitting}>
+              <Button onClick={handleSubmit} disabled={!formData.customer_id || isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Buat Order
               </Button>
