@@ -391,7 +391,7 @@ export default function Invoice() {
   const handleSaveMouLink = async () => {
     if (!mouEditingInvoice) return;
     setIsSubmitting(true);
-    await updateInvoice(mouEditingInvoice.id, { mou_link: mouLink || null } as any);
+    await updateInvoice(mouEditingInvoice.id, { mou_link: mouLink || null });
     setIsSubmitting(false);
     setIsMouDialogOpen(false);
     setMouEditingInvoice(null);
