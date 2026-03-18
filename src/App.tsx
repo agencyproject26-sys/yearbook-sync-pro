@@ -16,6 +16,7 @@ import Gaji from "./pages/Gaji";
 import Laporan from "./pages/Laporan";
 import RecycleBin from "./pages/RecycleBin";
 import Pengaturan from "./pages/Pengaturan";
+import Case from "./pages/Case";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
