@@ -656,45 +656,6 @@ export default function Order() {
           </DialogContent>
         </Dialog>
 
-        {/* MOU Dialog */}
-        <Dialog open={isMouDialogOpen} onOpenChange={(open) => { setIsMouDialogOpen(open); if (!open) setEditingOrder(null); }}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Generate MOU</DialogTitle>
-              <DialogDescription>
-                MOU untuk {editingOrder?.customers?.name}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <Button variant="outline" className="w-full" onClick={() => openExternalLink("https://www.canva.com/design/new?template=mou")}>
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Buka Template MOU di Canva
-              </Button>
-              <div className="grid gap-2">
-                <Label>Link MOU (Opsional)</Label>
-                <div className="flex gap-2">
-                  <Input 
-                    placeholder="https://www.canva.com/design/..." 
-                    value={mouLink}
-                    onChange={(e) => setMouLink(e.target.value)}
-                  />
-                  {mouLink && (
-                    <Button variant="ghost" size="icon" onClick={() => openExternalLink(mouLink)}>
-                      <ExternalLink className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsMouDialogOpen(false)}>Batal</Button>
-              <Button onClick={handleSaveMouLink} disabled={isLinkSubmitting}>
-                {isLinkSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Simpan
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         {/* Gmail Dialog */}
         <Dialog open={isGmailDialogOpen} onOpenChange={(open) => { setIsGmailDialogOpen(open); if (!open) setEditingOrder(null); }}>

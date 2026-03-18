@@ -26,6 +26,7 @@ export interface Invoice {
   pelunasan_date: string | null;
   pelunasan_amount: number | null;
   payment_terms: PaymentTerm[];
+  mou_link: string | null;
   created_at: string;
   customers?: {
     name: string;
