@@ -896,6 +896,10 @@ export default function Invoice() {
                                   <FileDown className="mr-2 h-4 w-4" />
                                   Download PDF
                                 </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOpenEditItems(invoice)}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Edit Item
+                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleOpenTerminDialog(invoice)}>
                                   <Pencil className="mr-2 h-4 w-4" />
                                   Edit Termin
