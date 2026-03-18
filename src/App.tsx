@@ -46,6 +46,7 @@ const App = () => (
             <Route path="/gaji" element={<ProtectedRoute><Gaji /></ProtectedRoute>} />
             <Route path="/laporan" element={<ProtectedRoute><Laporan /></ProtectedRoute>} />
             <Route path="/recycle-bin" element={<ProtectedRoute><RecycleBin /></ProtectedRoute>} />
+            <Route path="/case" element={<ProtectedRoute><Case /></ProtectedRoute>} />
             <Route path="/pengaturan" element={<ProtectedRoute><Pengaturan /></ProtectedRoute>} />
             
             {/* Catch-all route */}
