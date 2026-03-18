@@ -748,6 +748,28 @@ export default function Invoice() {
                         </Button>
                       </div>
                     </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenMouDialog(invoice)}
+                        >
+                          <FileText className="mr-1 h-3 w-3" />
+                          {invoice.mou_link ? "Edit" : "Add"}
+                        </Button>
+                        {invoice.mou_link && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-success"
+                            onClick={() => openExternalLink(invoice.mou_link!)}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <div>
                         <Badge className={status.className}>{status.label}</Badge>
