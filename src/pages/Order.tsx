@@ -64,6 +64,7 @@ const designStatusConfig: Record<DesignStatus, { label: string; className: strin
 
 const emptyFormData: OrderFormData = {
   customer_id: "",
+  order_number: "",
   value: 0,
   wa_desc: "",
   notes: "",
