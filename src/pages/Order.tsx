@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Filter, FileText, Link, FolderOpen, Mail, Loader2, Eye, ExternalLink, Trash2, FileTextIcon, Pencil, MessageCircle } from "lucide-react";
+import { Search, Filter, FileText, Link, FolderOpen, Mail, Loader2, Eye, ExternalLink, Trash2, FileTextIcon, Pencil, MessageCircle, ChevronsUpDown, Check } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
