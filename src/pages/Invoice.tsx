@@ -97,6 +97,7 @@ const emptyPaymentTerm: PaymentTerm = {
 export default function Invoice() {
   const { invoices, loading, addInvoice, updateInvoice, deleteInvoice, refetch: refetchInvoices } = useInvoices();
   const { customers, refetch: refetchCustomers } = useCustomers();
+  const { orders } = useOrders();
   const { settings: companySettings, uploadLogo, uploadSignature, saveSettings, getSignatureUrl } = useCompanySettings();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
