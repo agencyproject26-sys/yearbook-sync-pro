@@ -244,6 +244,7 @@ export default function Invoice() {
     setIsSubmitting(true);
     const invoiceData: InvoiceFormData = {
       customer_id: formData.customer_id,
+      order_id: formData.order_id || undefined,
       issue_date: formData.issue_date,
       items: formItems.map(item => ({
         description: item.description,
