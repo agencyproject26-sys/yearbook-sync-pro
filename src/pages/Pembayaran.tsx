@@ -37,6 +37,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { usePayments, Payment, PaymentFormData } from "@/hooks/usePayments";
 import { useInvoices, Invoice } from "@/hooks/useInvoices";
 import { ReceiptPreview } from "@/components/receipt/ReceiptPreview";
