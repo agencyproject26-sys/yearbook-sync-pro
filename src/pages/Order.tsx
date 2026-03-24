@@ -5,8 +5,6 @@ import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import {
   Select,
   SelectContent,
@@ -59,7 +57,7 @@ const designStatusConfig: Record<DesignStatus, { label: string; className: strin
   review: { label: "Review", className: "bg-warning/15 text-warning" },
   selesai: { label: "Selesai", className: "bg-success/15 text-success" },
 };
-  const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
+
 
 const emptyFormData: OrderFormData = {
   customer_id: "",
@@ -630,45 +628,16 @@ export default function Order() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="customer">Pilih Pelanggan *</Label>
-                  <Popover open={customerSearchOpen} onOpenChange={setCustomerSearchOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={customerSearchOpen}
-                        className="w-full justify-between font-normal"
-                      >
-                        {formData.customer_id
-                          ? customers.find(c => c.id === formData.customer_id)?.name
-                          : "Ketik atau pilih pelanggan..."}
-                        <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0" align="start">
-                      <Command>
-                        <CommandInput placeholder="Cari pelanggan..." />
-                        <CommandList>
-                          <CommandEmpty>Pelanggan tidak ditemukan.</CommandEmpty>
-                          <CommandGroup>
-                            {[...customers]
-                              .sort((a, b) => a.name.localeCompare(b.name))
-                              .map(c => (
-                                <CommandItem
-                                  key={c.id}
-                                  value={c.name}
-                                  onSelect={() => {
-                                    setFormData(prev => ({ ...prev, customer_id: c.id }));
-                                    setCustomerSearchOpen(false);
-                                  }}
-                                >
-                                  {c.name}
-                                </CommandItem>
-                              ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <Select value={formData.customer_id || undefined} onValueChange={(value) => setFormData(prev => ({ ...prev, customer_id: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih sekolah" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
