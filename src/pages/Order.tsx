@@ -61,6 +61,12 @@ const designStatusConfig: Record<DesignStatus, { label: string; className: strin
   selesai: { label: "Selesai", className: "bg-success/15 text-success" },
 };
 
+const cetakStatusConfig: Record<CetakStatus, { label: string; className: string }> = {
+  belum: { label: "Belum", className: "bg-muted text-muted-foreground" },
+  proses: { label: "Proses", className: "bg-info/15 text-info" },
+  selesai: { label: "Selesai", className: "bg-success/15 text-success" },
+};
+
 
 const emptyFormData: OrderFormData = {
   customer_id: "",
