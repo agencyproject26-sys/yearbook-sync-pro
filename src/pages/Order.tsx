@@ -77,7 +77,7 @@ const emptyFormData: OrderFormData = {
 };
 
 export default function Order() {
-  const { orders, loading, addOrder, updateOrder, deleteOrder } = useOrders();
+  const { orders, loading, addOrder, updateOrder, deleteOrder, generateOrderNumber } = useOrders();
   const { customers } = useCustomers();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
@@ -360,7 +360,10 @@ export default function Order() {
         subtitle="Kelola order dan proyek buku tahunan"
         showAddButton
         addButtonLabel="Buat Order"
-        onAddClick={() => setIsDialogOpen(true)}
+        onAddClick={() => {
+          setFormData({ ...emptyFormData, order_number: generateOrderNumber() });
+          setIsDialogOpen(true);
+        }}
         showSearch={false}
         showNotifications={false}
       />
@@ -746,11 +749,11 @@ export default function Order() {
                   <Label htmlFor="order_number">Nomor Order</Label>
                   <Input
                     id="order_number"
-                    placeholder="Otomatis jika kosong (ORD-2026-001)"
+                    placeholder="ORD-2026-001"
                     value={formData.order_number || ""}
                     onChange={(e) => setFormData(prev => ({ ...prev, order_number: e.target.value }))}
                   />
-                  <p className="text-xs text-muted-foreground">Kosongkan untuk generate otomatis</p>
+                  <p className="text-xs text-muted-foreground">Nomor otomatis, bisa diubah manual</p>
                 </div>
               </div>
 

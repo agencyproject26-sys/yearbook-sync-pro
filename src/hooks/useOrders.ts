@@ -54,8 +54,20 @@ export const useOrders = () => {
 
   const generateOrderNumber = () => {
     const year = new Date().getFullYear();
-    const random = String(Math.floor(Math.random() * 1000)).padStart(3, "0");
-    return `ORD-${year}-${random}`;
+    const prefix = `ORD-${year}-`;
+    
+    // Find the highest existing number for this year
+    let maxNum = 0;
+    orders.forEach(order => {
+      if (order.order_number.startsWith(prefix)) {
+        const numPart = parseInt(order.order_number.replace(prefix, ""), 10);
+        if (!isNaN(numPart) && numPart > maxNum) {
+          maxNum = numPart;
+        }
+      }
+    });
+    
+    return `${prefix}${String(maxNum + 1).padStart(3, "0")}`;
   };
 
   const fetchOrders = async () => {
@@ -170,5 +182,5 @@ export const useOrders = () => {
     fetchOrders();
   }, []);
 
-  return { orders, loading, addOrder, updateOrder, updateOrderStatus, deleteOrder, refetch: fetchOrders };
+  return { orders, loading, addOrder, updateOrder, updateOrderStatus, deleteOrder, refetch: fetchOrders, generateOrderNumber };
 };
