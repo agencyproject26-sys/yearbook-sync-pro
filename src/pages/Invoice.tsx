@@ -1091,8 +1091,10 @@ export default function Invoice() {
                         </div>
                         <Input 
                           className="col-span-3" 
-                          value={formatCurrency(term.amount || 0)} 
-                          readOnly 
+                          type="number"
+                          value={term.amount || ""}
+                          onChange={(e) => handleTermChange(index, "amount", parseFloat(e.target.value) || 0)}
+                          placeholder="Jumlah"
                         />
                         <Input 
                           className="col-span-3" 
