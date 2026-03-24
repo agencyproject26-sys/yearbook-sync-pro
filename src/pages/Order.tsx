@@ -1188,10 +1188,6 @@ export default function Order() {
                   <h4 className="text-sm font-semibold text-foreground mb-3 border-b border-border pb-1">Catatan</h4>
                   <div className="grid gap-2">
                     <div>
-                      <p className="text-xs text-muted-foreground">Deskripsi WA</p>
-                      <p className="text-sm">{viewingOrder.wa_desc || "-"}</p>
-                    </div>
-                    <div>
                       <p className="text-xs text-muted-foreground">Catatan Internal</p>
                       <p className="text-sm">{viewingOrder.notes || "-"}</p>
                     </div>
