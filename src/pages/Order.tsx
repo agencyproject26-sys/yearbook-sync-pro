@@ -309,7 +309,8 @@ export default function Order() {
       order_number: order.order_number,
       wa_desc: order.wa_desc || "",
       notes: order.notes || "",
-      value: order.value
+      value: order.value,
+      shipping_date: (order as any).shipping_date || "",
     });
     setIsEditDialogOpen(true);
   };
