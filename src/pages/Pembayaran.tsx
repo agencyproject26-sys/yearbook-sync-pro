@@ -1008,25 +1008,65 @@ export default function Pembayaran() {
                   </p>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label>Via Transfer</Label>
-                  <Input 
-                    type="number" 
-                    placeholder="1000000" 
-                    value={formData.transfer_amount}
-                    onChange={(e) => setFormData(prev => ({ ...prev, transfer_amount: e.target.value }))}
+              <div className="grid gap-3">
+                <div className="flex items-center gap-2">
+                  <Checkbox 
+                    id="via_transfer"
+                    checked={formData.via_transfer}
+                    onCheckedChange={(checked) => {
+                      const isChecked = checked === true;
+                      setFormData(prev => ({
+                        ...prev,
+                        via_transfer: isChecked,
+                        transfer_amount: isChecked ? prev.amount : "",
+                        cash_amount: isChecked ? "0" : "",
+                      }));
+                    }}
                   />
+                  <Label htmlFor="via_transfer" className="cursor-pointer">Via Transfer</Label>
                 </div>
-                <div className="grid gap-2">
-                  <Label>Via Cash</Label>
-                  <Input 
-                    type="number" 
-                    placeholder="1400000" 
-                    value={formData.cash_amount}
-                    onChange={(e) => setFormData(prev => ({ ...prev, cash_amount: e.target.value }))}
-                  />
-                </div>
+                {formData.via_transfer && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label>Nominal Transfer</Label>
+                      <Input 
+                        type="number" 
+                        placeholder="1000000" 
+                        value={formData.transfer_amount}
+                        onChange={(e) => {
+                          const transferVal = e.target.value;
+                          const totalAmount = parseFloat(formData.amount) || 0;
+                          const transferAmount = parseFloat(transferVal) || 0;
+                          const cashAmount = Math.max(0, totalAmount - transferAmount);
+                          setFormData(prev => ({
+                            ...prev,
+                            transfer_amount: transferVal,
+                            cash_amount: String(cashAmount),
+                          }));
+                        }}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Via Cash</Label>
+                      <Input 
+                        type="number" 
+                        placeholder="0" 
+                        value={formData.cash_amount}
+                        onChange={(e) => {
+                          const cashVal = e.target.value;
+                          const totalAmount = parseFloat(formData.amount) || 0;
+                          const cashAmount = parseFloat(cashVal) || 0;
+                          const transferAmount = Math.max(0, totalAmount - cashAmount);
+                          setFormData(prev => ({
+                            ...prev,
+                            cash_amount: cashVal,
+                            transfer_amount: String(transferAmount),
+                          }));
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="grid gap-2">
                 <Label>Tanggal Pembayaran *</Label>
