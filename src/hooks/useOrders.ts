@@ -37,6 +37,7 @@ export interface Order {
 
 export interface OrderFormData {
   customer_id: string;
+  order_number?: string;
   value: number;
   wa_desc: string;
   notes: string;
