@@ -25,6 +25,9 @@ export interface Order {
   design_cover_status: DesignStatus;
   design_isi_status: DesignStatus;
   design_packaging_status: DesignStatus;
+  cetak_cover_status: CetakStatus;
+  cetak_isi_status: CetakStatus;
+  cetak_packaging_status: CetakStatus;
   wa_group_link: string | null;
   wa_desc: string | null;
   notes: string | null;
