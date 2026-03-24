@@ -106,6 +106,7 @@ interface FormData {
   amount: string;
   transfer_amount: string;
   cash_amount: string;
+  via_transfer: boolean;
   date: string;
   description: string;
   selected_termin_id: string;
@@ -119,6 +120,7 @@ const emptyFormData: FormData = {
   amount: "",
   transfer_amount: "",
   cash_amount: "",
+  via_transfer: false,
   date: "",
   description: "",
   selected_termin_id: "",
