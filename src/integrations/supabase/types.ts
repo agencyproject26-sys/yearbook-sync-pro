@@ -301,6 +301,7 @@ export type Database = {
           mou_link: string | null
           notes: string | null
           order_number: string
+          shipping_date: string | null
           spreadsheet_link: string | null
           status: string
           updated_at: string
@@ -331,6 +332,7 @@ export type Database = {
           mou_link?: string | null
           notes?: string | null
           order_number: string
+          shipping_date?: string | null
           spreadsheet_link?: string | null
           status?: string
           updated_at?: string
@@ -361,6 +363,7 @@ export type Database = {
           mou_link?: string | null
           notes?: string | null
           order_number?: string
+          shipping_date?: string | null
           spreadsheet_link?: string | null
           status?: string
           updated_at?: string
