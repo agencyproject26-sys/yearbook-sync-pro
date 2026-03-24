@@ -499,7 +499,7 @@ export default function Order() {
                           value={order.design_cover_status}
                           onValueChange={(value: DesignStatus) => updateOrder(order.id, { design_cover_status: value })}
                         >
-                          <SelectTrigger className="h-7 w-[110px] text-xs">
+                          <SelectTrigger className={`h-7 w-[110px] text-xs ${order.design_cover_status === "proses" || order.design_cover_status === "review" ? "bg-yellow-100 border-yellow-400 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-600" : order.design_cover_status === "selesai" ? "bg-emerald-100 border-emerald-400 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-600" : ""}`}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -538,7 +538,7 @@ export default function Order() {
                           value={order.design_isi_status}
                           onValueChange={(value: DesignStatus) => updateOrder(order.id, { design_isi_status: value })}
                         >
-                          <SelectTrigger className="h-7 w-[110px] text-xs">
+                          <SelectTrigger className={`h-7 w-[110px] text-xs ${order.design_isi_status === "proses" || order.design_isi_status === "review" ? "bg-yellow-100 border-yellow-400 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-600" : order.design_isi_status === "selesai" ? "bg-emerald-100 border-emerald-400 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-600" : ""}`}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -577,7 +577,7 @@ export default function Order() {
                           value={order.design_packaging_status}
                           onValueChange={(value: DesignStatus) => updateOrder(order.id, { design_packaging_status: value })}
                         >
-                          <SelectTrigger className="h-7 w-[110px] text-xs">
+                          <SelectTrigger className={`h-7 w-[110px] text-xs ${order.design_packaging_status === "proses" || order.design_packaging_status === "review" ? "bg-yellow-100 border-yellow-400 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-600" : order.design_packaging_status === "selesai" ? "bg-emerald-100 border-emerald-400 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-600" : ""}`}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -615,7 +615,7 @@ export default function Order() {
                         value={order.cetak_cover_status || "belum"}
                         onValueChange={(value: CetakStatus) => updateOrder(order.id, { cetak_cover_status: value } as any)}
                       >
-                        <SelectTrigger className="h-7 w-[90px] text-xs mx-auto">
+                        <SelectTrigger className={`h-7 w-[90px] text-xs mx-auto ${(order.cetak_cover_status || "belum") === "proses" ? "bg-yellow-100 border-yellow-400 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-600" : (order.cetak_cover_status || "belum") === "selesai" ? "bg-emerald-100 border-emerald-400 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-600" : ""}`}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -630,7 +630,7 @@ export default function Order() {
                         value={order.cetak_isi_status || "belum"}
                         onValueChange={(value: CetakStatus) => updateOrder(order.id, { cetak_isi_status: value } as any)}
                       >
-                        <SelectTrigger className="h-7 w-[90px] text-xs mx-auto">
+                        <SelectTrigger className={`h-7 w-[90px] text-xs mx-auto ${(order.cetak_isi_status || "belum") === "proses" ? "bg-yellow-100 border-yellow-400 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-600" : (order.cetak_isi_status || "belum") === "selesai" ? "bg-emerald-100 border-emerald-400 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-600" : ""}`}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -645,7 +645,7 @@ export default function Order() {
                         value={order.cetak_packaging_status || "belum"}
                         onValueChange={(value: CetakStatus) => updateOrder(order.id, { cetak_packaging_status: value } as any)}
                       >
-                        <SelectTrigger className="h-7 w-[90px] text-xs mx-auto">
+                        <SelectTrigger className={`h-7 w-[90px] text-xs mx-auto ${(order.cetak_packaging_status || "belum") === "proses" ? "bg-yellow-100 border-yellow-400 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-600" : (order.cetak_packaging_status || "belum") === "selesai" ? "bg-emerald-100 border-emerald-400 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-600" : ""}`}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
