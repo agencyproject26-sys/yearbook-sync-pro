@@ -583,6 +583,7 @@ export default function Order() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="tidak_ada">Tidak Ada</SelectItem>
                             <SelectItem value="belum_mulai">Belum Mulai</SelectItem>
                             <SelectItem value="proses">Proses</SelectItem>
                             <SelectItem value="review">Review</SelectItem>
