@@ -420,9 +420,9 @@ export default function Order() {
         </div>
 
         {/* Orders Table */}
-        <div className="rounded-xl border border-border bg-card overflow-hidden overflow-x-auto max-h-[calc(100vh-340px)]">
+        <div className="rounded-xl border border-border bg-card overflow-hidden overflow-x-auto">
           <Table>
-            <TableHeader className="sticky top-0 z-10 bg-card">
+            <TableHeader>
               <TableRow>
                 <TableHead>Nama Pelanggan</TableHead>
                 
