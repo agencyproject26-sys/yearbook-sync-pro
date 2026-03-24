@@ -422,20 +422,20 @@ export default function Order() {
         {/* Orders Table */}
         <div className="rounded-xl border border-border bg-card overflow-x-auto overflow-y-auto max-h-[calc(100vh-320px)]">
           <Table>
-            <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
-              <TableRow>
-                <TableHead>Nama Pelanggan</TableHead>
+            <TableHeader className="sticky top-0 z-20">
+              <TableRow className="bg-card border-b-2 border-border">
+                <TableHead className="bg-card">Nama Pelanggan</TableHead>
                 
                 
-                <TableHead className="text-center">Grup WhatsApp</TableHead>
-                <TableHead className="text-center">Design Cover</TableHead>
-                <TableHead className="text-center">Design Isi</TableHead>
-                <TableHead className="text-center">Design Packaging</TableHead>
-                <TableHead className="text-center">Cetak Cover</TableHead>
-                <TableHead className="text-center">Cetak Isi</TableHead>
-                <TableHead className="text-center">Cetak Packaging</TableHead>
-                <TableHead>Catatan</TableHead>
-                <TableHead className="w-[100px] text-center">Aksi</TableHead>
+                <TableHead className="text-center bg-card">Grup WhatsApp</TableHead>
+                <TableHead className="text-center bg-card">Design Cover</TableHead>
+                <TableHead className="text-center bg-card">Design Isi</TableHead>
+                <TableHead className="text-center bg-card">Design Packaging</TableHead>
+                <TableHead className="text-center bg-card">Cetak Cover</TableHead>
+                <TableHead className="text-center bg-card">Cetak Isi</TableHead>
+                <TableHead className="text-center bg-card">Cetak Packaging</TableHead>
+                <TableHead className="bg-card">Catatan</TableHead>
+                <TableHead className="w-[100px] text-center bg-card">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
