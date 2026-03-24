@@ -425,6 +425,9 @@ export default function Order() {
                 <TableHead className="text-center">Design Cover</TableHead>
                 <TableHead className="text-center">Design Isi</TableHead>
                 <TableHead className="text-center">Design Packaging</TableHead>
+                <TableHead className="text-center">Cetak Cover</TableHead>
+                <TableHead className="text-center">Cetak Isi</TableHead>
+                <TableHead className="text-center">Cetak Packaging</TableHead>
                 <TableHead>Catatan</TableHead>
                 <TableHead className="w-[100px] text-center">Aksi</TableHead>
               </TableRow>
