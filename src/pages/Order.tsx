@@ -59,7 +59,7 @@ const designStatusConfig: Record<DesignStatus, { label: string; className: strin
   review: { label: "Review", className: "bg-warning/15 text-warning" },
   selesai: { label: "Selesai", className: "bg-success/15 text-success" },
 };
-
+  const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
 
 const emptyFormData: OrderFormData = {
   customer_id: "",
