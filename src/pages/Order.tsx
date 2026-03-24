@@ -1200,7 +1200,7 @@ export default function Order() {
                   <div className="grid gap-2">
                     <div>
                       <p className="text-xs text-muted-foreground">Catatan Internal</p>
-                      <p className="text-sm">{viewingOrder.notes || "-"}</p>
+                      <p className="text-sm whitespace-pre-line">{viewingOrder.notes || "-"}</p>
                     </div>
                   </div>
                 </div>
