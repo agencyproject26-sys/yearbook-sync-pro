@@ -370,9 +370,9 @@ export default function Order() {
         showNotifications={false}
       />
 
-      <div className="p-6">
+      <div className="p-6 flex flex-col h-[calc(100vh-73px)] overflow-hidden">
         {/* Stats */}
-        <div className="mb-6 grid gap-4 sm:grid-cols-4">
+        <div className="mb-6 grid gap-4 sm:grid-cols-4 flex-shrink-0">
           <div className="rounded-xl border border-border bg-card p-4">
             <p className="text-sm text-muted-foreground">Total Order</p>
             <p className="text-2xl font-bold">{orders.length}</p>
@@ -392,7 +392,7 @@ export default function Order() {
         </div>
 
         {/* Filters */}
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between flex-shrink-0">
           <div className="flex flex-1 gap-3">
             <div className="relative flex-1 sm:max-w-xs">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -420,7 +420,7 @@ export default function Order() {
         </div>
 
         {/* Orders Table */}
-        <div className="rounded-xl border border-border bg-card overflow-x-auto overflow-y-auto max-h-[calc(100vh-320px)]">
+        <div className="rounded-xl border border-border bg-card overflow-x-auto overflow-y-auto flex-1 min-h-0">
           <Table>
             <TableHeader className="sticky top-0 z-20">
               <TableRow className="bg-card border-b-2 border-border">
