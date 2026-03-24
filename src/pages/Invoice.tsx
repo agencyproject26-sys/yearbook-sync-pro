@@ -216,10 +216,14 @@ export default function Invoice() {
     const newTerms = [...paymentTerms];
     (newTerms[index] as any)[field] = value;
     
+    const total = calculateTotal();
     // Auto-calculate amount if percentage changes
-    if (field === "percentage") {
-      const total = calculateTotal();
+    if (field === "percentage" && total > 0) {
       newTerms[index].amount = (total * (parseFloat(value) || 0)) / 100;
+    }
+    // Auto-calculate percentage if amount changes
+    if (field === "amount" && total > 0) {
+      newTerms[index].percentage = ((parseFloat(value) || 0) / total) * 100;
     }
     
     setPaymentTerms(newTerms);
@@ -1091,8 +1095,10 @@ export default function Invoice() {
                         </div>
                         <Input 
                           className="col-span-3" 
-                          value={formatCurrency(term.amount || 0)} 
-                          readOnly 
+                          type="number"
+                          value={term.amount || ""}
+                          onChange={(e) => handleTermChange(index, "amount", parseFloat(e.target.value) || 0)}
+                          placeholder="Jumlah"
                         />
                         <Input 
                           className="col-span-3" 
