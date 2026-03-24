@@ -104,7 +104,7 @@ export default function Order() {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
-  const [editOrderData, setEditOrderData] = useState<{status: Order["status"]; order_number: string; wa_desc: string; notes: string; value: number}>({status: "proses", order_number: "", wa_desc: "", notes: "", value: 0});
+  const [editOrderData, setEditOrderData] = useState<{status: Order["status"]; order_number: string; wa_desc: string; notes: string; value: number; shipping_date: string}>({status: "proses", order_number: "", wa_desc: "", notes: "", value: 0, shipping_date: ""});
   
   // Delete dialog
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -309,7 +309,8 @@ export default function Order() {
       order_number: order.order_number,
       wa_desc: order.wa_desc || "",
       notes: order.notes || "",
-      value: order.value
+      value: order.value,
+      shipping_date: (order as any).shipping_date || "",
     });
     setIsEditDialogOpen(true);
   };
@@ -1108,18 +1109,11 @@ export default function Order() {
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Tanggal Pengiriman</p>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="date"
-                          className="h-8 w-auto text-sm"
-                          value={(viewingOrder as any).shipping_date || ""}
-                          onChange={async (e) => {
-                            const newDate = e.target.value || null;
-                            await updateOrder(viewingOrder.id, { shipping_date: newDate } as any);
-                            setViewingOrder(prev => prev ? { ...prev, shipping_date: newDate } as any : null);
-                          }}
-                        />
-                      </div>
+                      <p className="text-sm font-medium">
+                        {(viewingOrder as any).shipping_date
+                          ? new Date((viewingOrder as any).shipping_date).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
+                          : "-"}
+                      </p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Terakhir Diperbarui</p>
@@ -1273,6 +1267,14 @@ export default function Order() {
                   rows={2}
                   value={editOrderData.notes}
                   onChange={(e) => setEditOrderData(prev => ({ ...prev, notes: e.target.value }))}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Tanggal Pengiriman</Label>
+                <Input
+                  type="date"
+                  value={editOrderData.shipping_date}
+                  onChange={(e) => setEditOrderData(prev => ({ ...prev, shipping_date: e.target.value }))}
                 />
               </div>
             </div>
