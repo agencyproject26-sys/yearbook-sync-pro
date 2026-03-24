@@ -36,6 +36,7 @@ export interface Invoice {
 
 export interface InvoiceFormData {
   customer_id: string;
+  order_id?: string;
   issue_date: string;
   items: { description: string; qty: number; price: number }[];
   payment_terms: PaymentTerm[];
