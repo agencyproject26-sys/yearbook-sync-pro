@@ -50,6 +50,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useInvoices, type InvoiceFormData, type Invoice, type PaymentTerm } from "@/hooks/useInvoices";
 import { useCustomers } from "@/hooks/useCustomers";
+import { useOrders } from "@/hooks/useOrders";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useToast } from "@/hooks/use-toast";
 import { InvoicePreview } from "@/components/invoice/InvoicePreview";
