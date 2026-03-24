@@ -1051,6 +1051,13 @@ export default function Order() {
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
+                  <Label>Nomor Order</Label>
+                  <Input
+                    value={editOrderData.order_number}
+                    onChange={(e) => setEditOrderData(prev => ({ ...prev, order_number: e.target.value }))}
+                  />
+                </div>
+                <div className="grid gap-2">
                   <Label>Status</Label>
                   <Select value={editOrderData.status} onValueChange={(value: Order["status"]) => setEditOrderData(prev => ({ ...prev, status: value }))}>
                     <SelectTrigger>
