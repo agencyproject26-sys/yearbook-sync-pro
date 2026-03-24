@@ -110,7 +110,7 @@ export default function Order() {
   
 
   const handleSubmit = async () => {
-    if (!formData.customer_id || !formData.value) return;
+    if (!formData.customer_id) return;
     
     setIsSubmitting(true);
     const success = await addOrder(formData);
