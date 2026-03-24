@@ -214,6 +214,7 @@ export type Database = {
           issue_date: string | null
           items: Json | null
           mou_link: string | null
+          order_id: string | null
           payment_terms: Json | null
           pelunasan_amount: number | null
           pelunasan_date: string | null
@@ -233,6 +234,7 @@ export type Database = {
           issue_date?: string | null
           items?: Json | null
           mou_link?: string | null
+          order_id?: string | null
           payment_terms?: Json | null
           pelunasan_amount?: number | null
           pelunasan_date?: string | null
@@ -252,6 +254,7 @@ export type Database = {
           issue_date?: string | null
           items?: Json | null
           mou_link?: string | null
+          order_id?: string | null
           payment_terms?: Json | null
           pelunasan_amount?: number | null
           pelunasan_date?: string | null
@@ -263,6 +266,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
