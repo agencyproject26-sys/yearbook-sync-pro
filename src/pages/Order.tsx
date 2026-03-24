@@ -631,16 +631,32 @@ export default function Order() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="customer">Pilih Pelanggan *</Label>
-                  <Select value={formData.customer_id || undefined} onValueChange={(value) => setFormData(prev => ({ ...prev, customer_id: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih sekolah" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {customers.map(c => (
-                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" role="combobox" className={cn("w-full justify-between font-normal", !formData.customer_id && "text-muted-foreground")}>
+                        {formData.customer_id
+                          ? customers.find(c => c.id === formData.customer_id)?.name
+                          : "Ketik atau pilih pelanggan..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full min-w-[300px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Cari pelanggan..." />
+                        <CommandList>
+                          <CommandEmpty>Pelanggan tidak ditemukan.</CommandEmpty>
+                          <CommandGroup>
+                            {[...customers].sort((a, b) => a.name.localeCompare(b.name)).map(c => (
+                              <CommandItem key={c.id} value={c.name} onSelect={() => setFormData(prev => ({ ...prev, customer_id: c.id }))}>
+                                <Check className={cn("mr-2 h-4 w-4", formData.customer_id === c.id ? "opacity-100" : "opacity-0")} />
+                                {c.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
 
