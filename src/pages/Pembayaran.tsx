@@ -234,6 +234,7 @@ export default function Pembayaran() {
       amount: String(payment.amount),
       transfer_amount: "",
       cash_amount: "",
+      via_transfer: false,
       date: payment.payment_date,
       description: payment.description || "",
       selected_termin_id: "",
