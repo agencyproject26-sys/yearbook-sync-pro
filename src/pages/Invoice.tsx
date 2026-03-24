@@ -957,7 +957,7 @@ export default function Invoice() {
                         <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                       ))}
                     </SelectContent>
-                  </Select>
+                </Select>
                 </div>
                 <div className="grid gap-2">
                   <Label>Terbit Invoice *</Label>
@@ -967,6 +967,29 @@ export default function Invoice() {
                     onChange={(e) => setFormData(prev => ({ ...prev, issue_date: e.target.value }))}
                   />
                 </div>
+              </div>
+              
+              {/* Order Selection */}
+              <div className="grid gap-2">
+                <Label>Nomor Order (Opsional)</Label>
+                <Select 
+                  value={formData.order_id || ""} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, order_id: value || "" }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih order atau ketik manual" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Tidak ada</SelectItem>
+                    {orders
+                      .filter(o => !formData.customer_id || o.customer_id === formData.customer_id)
+                      .map(o => (
+                        <SelectItem key={o.id} value={o.id}>
+                          {o.order_number} - {o.customers?.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Company Settings Info */}
