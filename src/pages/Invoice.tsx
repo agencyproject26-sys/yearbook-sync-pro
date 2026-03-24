@@ -79,6 +79,7 @@ interface InvoiceItem {
 
 const emptyFormData: InvoiceFormData = {
   customer_id: "",
+  order_id: "",
   issue_date: "",
   items: [{ description: "", qty: 0, price: 0 }],
   payment_terms: [],
