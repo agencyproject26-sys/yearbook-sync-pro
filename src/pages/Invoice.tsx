@@ -946,7 +946,7 @@ export default function Invoice() {
                       <SelectValue placeholder="Pilih sekolah" />
                     </SelectTrigger>
                     <SelectContent>
-                      {customers.map(c => (
+                      {[...customers].sort((a, b) => a.name.localeCompare(b.name)).map(c => (
                         <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                       ))}
                     </SelectContent>
