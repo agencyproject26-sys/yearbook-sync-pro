@@ -1088,8 +1088,19 @@ export default function Order() {
                       <p className="text-sm font-medium">{viewingOrder.value ? `Rp ${viewingOrder.value.toLocaleString("id-ID")}` : "-"}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Tanggal Dibuat</p>
-                      <p className="text-sm font-medium">{new Date(viewingOrder.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</p>
+                      <p className="text-xs text-muted-foreground">Tanggal Pengiriman</p>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="date"
+                          className="h-8 w-auto text-sm"
+                          value={(viewingOrder as any).shipping_date || ""}
+                          onChange={async (e) => {
+                            const newDate = e.target.value || null;
+                            await updateOrder(viewingOrder.id, { shipping_date: newDate } as any);
+                            setViewingOrder(prev => prev ? { ...prev, shipping_date: newDate } as any : null);
+                          }}
+                        />
+                      </div>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Terakhir Diperbarui</p>
