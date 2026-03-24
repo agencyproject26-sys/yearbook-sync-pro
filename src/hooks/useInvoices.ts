@@ -104,6 +104,7 @@ export const useInvoices = () => {
         .insert({
           invoice_number: invoiceNumber,
           customer_id: formData.customer_id,
+          order_id: formData.order_id || null,
           amount: totalAmount,
           issue_date: formData.issue_date,
           due_date: formData.issue_date, // Keep for backward compatibility
