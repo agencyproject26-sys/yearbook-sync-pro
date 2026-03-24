@@ -216,10 +216,14 @@ export default function Invoice() {
     const newTerms = [...paymentTerms];
     (newTerms[index] as any)[field] = value;
     
+    const total = calculateTotal();
     // Auto-calculate amount if percentage changes
-    if (field === "percentage") {
-      const total = calculateTotal();
+    if (field === "percentage" && total > 0) {
       newTerms[index].amount = (total * (parseFloat(value) || 0)) / 100;
+    }
+    // Auto-calculate percentage if amount changes
+    if (field === "amount" && total > 0) {
+      newTerms[index].percentage = ((parseFloat(value) || 0) / total) * 100;
     }
     
     setPaymentTerms(newTerms);
