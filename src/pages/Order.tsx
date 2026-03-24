@@ -1047,70 +1047,7 @@ export default function Order() {
                 {/* Kelengkapan Dokumen */}
                 <div>
                   <h4 className="text-sm font-semibold text-foreground mb-3 border-b border-border pb-1">Kelengkapan Dokumen</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="flex items-center justify-between rounded-lg border border-border p-2.5">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">MoU</span>
-                      </div>
-                      {viewingOrder.mou_link ? (
-                        <Button variant="ghost" size="sm" className="h-7 text-xs text-primary" onClick={() => openExternalLink(viewingOrder.mou_link!)}>
-                          <ExternalLink className="mr-1 h-3 w-3" /> Buka
-                        </Button>
-                      ) : (
-                        <Badge variant="outline" className="text-xs">Belum ada</Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between rounded-lg border border-border p-2.5">
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">Gmail</span>
-                      </div>
-                      {viewingOrder.gmail_email ? (
-                        <span className="text-xs font-medium text-foreground">{viewingOrder.gmail_email}</span>
-                      ) : (
-                        <Badge variant="outline" className="text-xs">Belum ada</Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between rounded-lg border border-border p-2.5">
-                      <div className="flex items-center gap-2">
-                        <FileTextIcon className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">Spreadsheet</span>
-                      </div>
-                      {viewingOrder.spreadsheet_link ? (
-                        <Button variant="ghost" size="sm" className="h-7 text-xs text-primary" onClick={() => openExternalLink(viewingOrder.spreadsheet_link!)}>
-                          <ExternalLink className="mr-1 h-3 w-3" /> Buka
-                        </Button>
-                      ) : (
-                        <Badge variant="outline" className="text-xs">Belum ada</Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between rounded-lg border border-border p-2.5">
-                      <div className="flex items-center gap-2">
-                        <FolderOpen className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">Google Drive</span>
-                      </div>
-                      {viewingOrder.drive_link ? (
-                        <Button variant="ghost" size="sm" className="h-7 text-xs text-primary" onClick={() => openExternalLink(viewingOrder.drive_link!)}>
-                          <ExternalLink className="mr-1 h-3 w-3" /> Buka
-                        </Button>
-                      ) : (
-                        <Badge variant="outline" className="text-xs">Belum ada</Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between rounded-lg border border-border p-2.5">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">Google Doc</span>
-                      </div>
-                      {viewingOrder.google_doc_link ? (
-                        <Button variant="ghost" size="sm" className="h-7 text-xs text-primary" onClick={() => openExternalLink(viewingOrder.google_doc_link!)}>
-                          <ExternalLink className="mr-1 h-3 w-3" /> Buka
-                        </Button>
-                      ) : (
-                        <Badge variant="outline" className="text-xs">Belum ada</Badge>
-                      )}
-                    </div>
+                  <div className="grid grid-cols-1 gap-3">
                     <div className="flex items-center justify-between rounded-lg border border-border p-2.5">
                       <div className="flex items-center gap-2">
                         <MessageCircle className="h-4 w-4 text-muted-foreground" />
