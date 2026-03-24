@@ -80,7 +80,7 @@ export const useOrders = () => {
       const { data, error } = await supabase
         .from("orders")
         .insert({
-          order_number: generateOrderNumber(),
+          order_number: formData.order_number?.trim() || generateOrderNumber(),
           customer_id: formData.customer_id,
           value: formData.value,
           wa_desc: formData.wa_desc || null,
