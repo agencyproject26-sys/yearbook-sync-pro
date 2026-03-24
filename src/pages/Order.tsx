@@ -360,7 +360,10 @@ export default function Order() {
         subtitle="Kelola order dan proyek buku tahunan"
         showAddButton
         addButtonLabel="Buat Order"
-        onAddClick={() => setIsDialogOpen(true)}
+        onAddClick={() => {
+          setFormData({ ...emptyFormData, order_number: generateOrderNumber() });
+          setIsDialogOpen(true);
+        }}
         showSearch={false}
         showNotifications={false}
       />

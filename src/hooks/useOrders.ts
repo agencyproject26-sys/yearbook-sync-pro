@@ -182,5 +182,5 @@ export const useOrders = () => {
     fetchOrders();
   }, []);
 
-  return { orders, loading, addOrder, updateOrder, updateOrderStatus, deleteOrder, refetch: fetchOrders };
+  return { orders, loading, addOrder, updateOrder, updateOrderStatus, deleteOrder, refetch: fetchOrders, generateOrderNumber };
 };
