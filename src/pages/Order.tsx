@@ -298,6 +298,7 @@ export default function Order() {
     setViewingOrder(order);
     setEditOrderData({
       status: order.status,
+      order_number: order.order_number,
       wa_desc: order.wa_desc || "",
       notes: order.notes || "",
       value: order.value
