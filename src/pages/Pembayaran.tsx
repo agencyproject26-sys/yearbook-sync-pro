@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { Search, Download, Eye, Plus, Loader2, Pencil, Trash2, Check, X, Upload, ChevronDown, ChevronRight, FolderOpen } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
