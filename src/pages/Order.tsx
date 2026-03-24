@@ -59,12 +59,14 @@ const designStatusConfig: Record<DesignStatus, { label: string; className: strin
   proses: { label: "Proses", className: "bg-info/15 text-info" },
   review: { label: "Review", className: "bg-warning/15 text-warning" },
   selesai: { label: "Selesai", className: "bg-success/15 text-success" },
+  tidak_ada: { label: "Tidak Ada", className: "bg-muted/50 text-muted-foreground/60" },
 };
 
 const cetakStatusConfig: Record<CetakStatus, { label: string; className: string }> = {
   belum: { label: "Belum", className: "bg-muted text-muted-foreground" },
   proses: { label: "Proses", className: "bg-info/15 text-info" },
   selesai: { label: "Selesai", className: "bg-success/15 text-success" },
+  tidak_ada: { label: "Tidak Ada", className: "bg-muted/50 text-muted-foreground/60" },
 };
 
 
@@ -581,6 +583,7 @@ export default function Order() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="tidak_ada">Tidak Ada</SelectItem>
                             <SelectItem value="belum_mulai">Belum Mulai</SelectItem>
                             <SelectItem value="proses">Proses</SelectItem>
                             <SelectItem value="review">Review</SelectItem>
@@ -649,6 +652,7 @@ export default function Order() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="tidak_ada">Tidak Ada</SelectItem>
                           <SelectItem value="belum">Belum</SelectItem>
                           <SelectItem value="proses">Proses</SelectItem>
                           <SelectItem value="selesai">Selesai</SelectItem>
