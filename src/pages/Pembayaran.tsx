@@ -291,6 +291,7 @@ export default function Pembayaran() {
         ...prev,
         selected_termin_id: terminId,
         amount: String(selectedTerm.amount),
+        date: selectedTerm.date || prev.date,
         description: `Pembayaran ${selectedTerm.name}`,
       }));
     }
