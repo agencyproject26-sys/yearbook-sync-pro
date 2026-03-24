@@ -105,13 +105,15 @@ export default function Order() {
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const filteredOrders = orders.filter((order) => {
-    const matchesSearch =
-      order.customers?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.order_number.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || order.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredOrders = orders
+    .filter((order) => {
+      const matchesSearch =
+        order.customers?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        order.order_number.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === "all" || order.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => a.order_number.localeCompare(b.order_number, undefined, { numeric: true }));
 
   
 
