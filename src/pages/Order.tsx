@@ -42,6 +42,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useOrders, type OrderFormData, type Order, type DesignStatus } from "@/hooks/useOrders";
 import { useCustomers } from "@/hooks/useCustomers";
+import { useToast } from "@/hooks/use-toast";
 
 const statusConfig = {
   proses: { label: "Proses", className: "bg-info/15 text-info" },
@@ -68,10 +69,11 @@ const emptyFormData: OrderFormData = {
 export default function Order() {
   const { orders, loading, addOrder, updateOrder, deleteOrder } = useOrders();
   const { customers } = useCustomers();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [formData, setFormData] = useState<OrderFormData>(emptyFormData);
+  const [formData, setFormData] = useState<OrderFormData>(() => ({ ...emptyFormData }));
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Edit dialogs
@@ -110,21 +112,28 @@ export default function Order() {
   
 
   const handleSubmit = async () => {
-    if (!formData.customer_id) return;
-    
+    if (!formData.customer_id) {
+      toast({
+        title: "Pelanggan wajib dipilih",
+        description: "Silakan pilih pelanggan terlebih dahulu sebelum membuat order.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     const success = await addOrder(formData);
     setIsSubmitting(false);
     
     if (success) {
-      setFormData(emptyFormData);
+      setFormData({ ...emptyFormData });
       setIsDialogOpen(false);
     }
   };
 
   const handleDialogClose = (open: boolean) => {
     setIsDialogOpen(open);
-    if (!open) setFormData(emptyFormData);
+    if (!open) setFormData({ ...emptyFormData });
   };
 
 
@@ -619,7 +628,7 @@ export default function Order() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="customer">Pilih Pelanggan *</Label>
-                  <Select value={formData.customer_id} onValueChange={(value) => setFormData(prev => ({ ...prev, customer_id: value }))}>
+                  <Select value={formData.customer_id || undefined} onValueChange={(value) => setFormData(prev => ({ ...prev, customer_id: value }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih sekolah" />
                     </SelectTrigger>
@@ -648,7 +657,7 @@ export default function Order() {
               <Button variant="outline" onClick={() => handleDialogClose(false)}>
                 Batal
               </Button>
-              <Button onClick={handleSubmit} disabled={!formData.customer_id || isSubmitting}>
+              <Button onClick={handleSubmit} disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Buat Order
               </Button>
