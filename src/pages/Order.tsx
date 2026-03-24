@@ -628,7 +628,7 @@ export default function Order() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="customer">Pilih Pelanggan *</Label>
-                  <Select value={formData.customer_id} onValueChange={(value) => setFormData(prev => ({ ...prev, customer_id: value }))}>
+                  <Select value={formData.customer_id || undefined} onValueChange={(value) => setFormData(prev => ({ ...prev, customer_id: value }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih sekolah" />
                     </SelectTrigger>
@@ -657,7 +657,7 @@ export default function Order() {
               <Button variant="outline" onClick={() => handleDialogClose(false)}>
                 Batal
               </Button>
-              <Button onClick={handleSubmit} disabled={!formData.customer_id || isSubmitting}>
+              <Button onClick={handleSubmit} disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Buat Order
               </Button>
