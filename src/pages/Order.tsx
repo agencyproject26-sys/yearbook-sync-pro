@@ -438,10 +438,13 @@ export default function Order() {
                 const shippingDate = (order as any).shipping_date ? new Date((order as any).shipping_date) : null;
                 const now = new Date();
                 const oneMonthBefore = shippingDate ? new Date(shippingDate.getTime() - 30 * 24 * 60 * 60 * 1000) : null;
-                const isOverdue = shippingDate && now > shippingDate;
-                const isWarning = shippingDate && !isOverdue && oneMonthBefore && now >= oneMonthBefore;
+                const isCompleted = order.status === "selesai";
+                const isOverdue = !isCompleted && shippingDate && now > shippingDate;
+                const isWarning = !isCompleted && shippingDate && !isOverdue && oneMonthBefore && now >= oneMonthBefore;
 
-                const nameBg = isOverdue
+                const nameBg = isCompleted
+                  ? "bg-emerald-500/15 border-emerald-500/30"
+                  : isOverdue
                   ? "bg-destructive/15 border-destructive/30"
                   : isWarning
                   ? "bg-warning/15 border-warning/30"
