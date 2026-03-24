@@ -104,7 +104,7 @@ export default function Order() {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
-  const [editOrderData, setEditOrderData] = useState<{status: Order["status"]; order_number: string; wa_desc: string; notes: string; value: number}>({status: "proses", order_number: "", wa_desc: "", notes: "", value: 0});
+  const [editOrderData, setEditOrderData] = useState<{status: Order["status"]; order_number: string; wa_desc: string; notes: string; value: number; shipping_date: string}>({status: "proses", order_number: "", wa_desc: "", notes: "", value: 0, shipping_date: ""});
   
   // Delete dialog
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
