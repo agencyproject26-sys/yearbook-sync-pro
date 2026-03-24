@@ -660,6 +660,16 @@ export default function Order() {
                     </PopoverContent>
                   </Popover>
                 </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="order_number">Nomor Order</Label>
+                  <Input
+                    id="order_number"
+                    placeholder="Otomatis jika kosong (ORD-2026-001)"
+                    value={formData.order_number || ""}
+                    onChange={(e) => setFormData(prev => ({ ...prev, order_number: e.target.value }))}
+                  />
+                  <p className="text-xs text-muted-foreground">Kosongkan untuk generate otomatis</p>
+                </div>
               </div>
 
 
