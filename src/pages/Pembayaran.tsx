@@ -299,6 +299,11 @@ export default function Pembayaran() {
 
   const handleSubmit = async () => {
     if (!formData.invoice_id || !formData.amount || !formData.date || !formData.receipt_number) {
+      toast({
+        title: "Data belum lengkap",
+        description: `Mohon lengkapi: ${!formData.receipt_number ? "No. Kwitansi, " : ""}${!formData.invoice_id ? "Invoice, " : ""}${!formData.amount ? "Jumlah, " : ""}${!formData.date ? "Tanggal" : ""}`.replace(/, $/, ""),
+        variant: "destructive",
+      });
       return;
     }
 
