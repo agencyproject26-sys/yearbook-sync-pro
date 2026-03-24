@@ -974,14 +974,14 @@ export default function Invoice() {
               <div className="grid gap-2">
                 <Label>Nomor Order (Opsional)</Label>
                 <Select 
-                  value={formData.order_id || ""} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, order_id: value || "" }))}
+                  value={formData.order_id || "none"} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, order_id: value === "none" ? "" : value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih order atau ketik manual" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Tidak ada</SelectItem>
+                    <SelectItem value="none">Tidak ada</SelectItem>
                     {orders
                       .filter(o => !formData.customer_id || o.customer_id === formData.customer_id)
                       .map(o => (
