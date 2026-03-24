@@ -581,6 +581,51 @@ export default function Order() {
                         </div>
                       </div>
                     </TableCell>
+                    <TableCell className="text-center">
+                      <Select
+                        value={order.cetak_cover_status || "belum"}
+                        onValueChange={(value: CetakStatus) => updateOrder(order.id, { cetak_cover_status: value } as any)}
+                      >
+                        <SelectTrigger className="h-7 w-[90px] text-xs mx-auto">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="belum">Belum</SelectItem>
+                          <SelectItem value="proses">Proses</SelectItem>
+                          <SelectItem value="selesai">Selesai</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Select
+                        value={order.cetak_isi_status || "belum"}
+                        onValueChange={(value: CetakStatus) => updateOrder(order.id, { cetak_isi_status: value } as any)}
+                      >
+                        <SelectTrigger className="h-7 w-[90px] text-xs mx-auto">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="belum">Belum</SelectItem>
+                          <SelectItem value="proses">Proses</SelectItem>
+                          <SelectItem value="selesai">Selesai</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Select
+                        value={order.cetak_packaging_status || "belum"}
+                        onValueChange={(value: CetakStatus) => updateOrder(order.id, { cetak_packaging_status: value } as any)}
+                      >
+                        <SelectTrigger className="h-7 w-[90px] text-xs mx-auto">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="belum">Belum</SelectItem>
+                          <SelectItem value="proses">Proses</SelectItem>
+                          <SelectItem value="selesai">Selesai</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
                     <TableCell>
                       <div className="max-w-[200px]">
                         {order.wa_desc && (
