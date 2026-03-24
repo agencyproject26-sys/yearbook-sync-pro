@@ -454,9 +454,12 @@ export default function Order() {
                   <TableRow key={order.id}>
                     <TableCell>
                       <div className={cn("rounded-md px-2 py-1", nameBg)}>
-                        <p className={cn("font-medium", isOverdue ? "text-destructive" : isWarning ? "text-warning" : "")}>{order.customers?.name}</p>
+                        <p className={cn("font-medium", isCompleted ? "text-emerald-700 dark:text-emerald-400" : isOverdue ? "text-destructive" : isWarning ? "text-warning" : "")}>{order.customers?.name}</p>
                         <p className="text-xs text-muted-foreground">{order.order_number}</p>
-                        {shippingDate && (
+                        {isCompleted && (
+                          <p className="text-[10px] mt-0.5 text-emerald-600 dark:text-emerald-400 font-semibold">✅ Selesai</p>
+                        )}
+                        {!isCompleted && shippingDate && (
                           <p className={cn("text-[10px] mt-0.5", isOverdue ? "text-destructive" : isWarning ? "text-warning" : "text-muted-foreground")}>
                             📦 {shippingDate.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
                             {isOverdue && " — Terlambat!"}
