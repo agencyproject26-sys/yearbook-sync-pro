@@ -77,7 +77,7 @@ const emptyFormData: OrderFormData = {
 };
 
 export default function Order() {
-  const { orders, loading, addOrder, updateOrder, deleteOrder } = useOrders();
+  const { orders, loading, addOrder, updateOrder, deleteOrder, generateOrderNumber } = useOrders();
   const { customers } = useCustomers();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
