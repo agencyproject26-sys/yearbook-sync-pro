@@ -37,6 +37,7 @@ export interface Order {
 
 export interface OrderFormData {
   customer_id: string;
+  order_number?: string;
   value: number;
   wa_desc: string;
   notes: string;
@@ -79,7 +80,7 @@ export const useOrders = () => {
       const { data, error } = await supabase
         .from("orders")
         .insert({
-          order_number: generateOrderNumber(),
+          order_number: formData.order_number?.trim() || generateOrderNumber(),
           customer_id: formData.customer_id,
           value: formData.value,
           wa_desc: formData.wa_desc || null,

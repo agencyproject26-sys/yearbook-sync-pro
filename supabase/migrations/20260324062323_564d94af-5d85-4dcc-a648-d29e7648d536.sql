@@ -1,0 +1,1 @@
+ALTER TABLE public.invoices ADD COLUMN order_id uuid REFERENCES public.orders(id) ON DELETE SET NULL;

@@ -50,6 +50,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useInvoices, type InvoiceFormData, type Invoice, type PaymentTerm } from "@/hooks/useInvoices";
 import { useCustomers } from "@/hooks/useCustomers";
+import { useOrders } from "@/hooks/useOrders";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useToast } from "@/hooks/use-toast";
 import { InvoicePreview } from "@/components/invoice/InvoicePreview";
@@ -78,6 +79,7 @@ interface InvoiceItem {
 
 const emptyFormData: InvoiceFormData = {
   customer_id: "",
+  order_id: "",
   issue_date: "",
   items: [{ description: "", qty: 0, price: 0 }],
   payment_terms: [],
@@ -96,6 +98,7 @@ const emptyPaymentTerm: PaymentTerm = {
 export default function Invoice() {
   const { invoices, loading, addInvoice, updateInvoice, deleteInvoice, refetch: refetchInvoices } = useInvoices();
   const { customers, refetch: refetchCustomers } = useCustomers();
+  const { orders } = useOrders();
   const { settings: companySettings, uploadLogo, uploadSignature, saveSettings, getSignatureUrl } = useCompanySettings();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
@@ -241,6 +244,7 @@ export default function Invoice() {
     setIsSubmitting(true);
     const invoiceData: InvoiceFormData = {
       customer_id: formData.customer_id,
+      order_id: formData.order_id || undefined,
       issue_date: formData.issue_date,
       items: formItems.map(item => ({
         description: item.description,
@@ -954,7 +958,7 @@ export default function Invoice() {
                         <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                       ))}
                     </SelectContent>
-                  </Select>
+                </Select>
                 </div>
                 <div className="grid gap-2">
                   <Label>Terbit Invoice *</Label>
@@ -964,6 +968,29 @@ export default function Invoice() {
                     onChange={(e) => setFormData(prev => ({ ...prev, issue_date: e.target.value }))}
                   />
                 </div>
+              </div>
+              
+              {/* Order Selection */}
+              <div className="grid gap-2">
+                <Label>Nomor Order (Opsional)</Label>
+                <Select 
+                  value={formData.order_id || ""} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, order_id: value || "" }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih order atau ketik manual" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Tidak ada</SelectItem>
+                    {orders
+                      .filter(o => !formData.customer_id || o.customer_id === formData.customer_id)
+                      .map(o => (
+                        <SelectItem key={o.id} value={o.id}>
+                          {o.order_number} - {o.customers?.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Company Settings Info */}

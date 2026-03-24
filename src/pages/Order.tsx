@@ -64,6 +64,7 @@ const designStatusConfig: Record<DesignStatus, { label: string; className: strin
 
 const emptyFormData: OrderFormData = {
   customer_id: "",
+  order_number: "",
   value: 0,
   wa_desc: "",
   notes: "",
@@ -97,7 +98,7 @@ export default function Order() {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
-  const [editOrderData, setEditOrderData] = useState<{status: Order["status"]; wa_desc: string; notes: string; value: number}>({status: "proses", wa_desc: "", notes: "", value: 0});
+  const [editOrderData, setEditOrderData] = useState<{status: Order["status"]; order_number: string; wa_desc: string; notes: string; value: number}>({status: "proses", order_number: "", wa_desc: "", notes: "", value: 0});
   
   // Delete dialog
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -297,6 +298,7 @@ export default function Order() {
     setViewingOrder(order);
     setEditOrderData({
       status: order.status,
+      order_number: order.order_number,
       wa_desc: order.wa_desc || "",
       notes: order.notes || "",
       value: order.value
@@ -657,6 +659,16 @@ export default function Order() {
                       </Command>
                     </PopoverContent>
                   </Popover>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="order_number">Nomor Order</Label>
+                  <Input
+                    id="order_number"
+                    placeholder="Otomatis jika kosong (ORD-2026-001)"
+                    value={formData.order_number || ""}
+                    onChange={(e) => setFormData(prev => ({ ...prev, order_number: e.target.value }))}
+                  />
+                  <p className="text-xs text-muted-foreground">Kosongkan untuk generate otomatis</p>
                 </div>
               </div>
 
@@ -1038,6 +1050,13 @@ export default function Order() {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Nomor Order</Label>
+                  <Input
+                    value={editOrderData.order_number}
+                    onChange={(e) => setEditOrderData(prev => ({ ...prev, order_number: e.target.value }))}
+                  />
+                </div>
                 <div className="grid gap-2">
                   <Label>Status</Label>
                   <Select value={editOrderData.status} onValueChange={(value: Order["status"]) => setEditOrderData(prev => ({ ...prev, status: value }))}>

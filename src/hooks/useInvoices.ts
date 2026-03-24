@@ -36,6 +36,7 @@ export interface Invoice {
 
 export interface InvoiceFormData {
   customer_id: string;
+  order_id?: string;
   issue_date: string;
   items: { description: string; qty: number; price: number }[];
   payment_terms: PaymentTerm[];
@@ -103,6 +104,7 @@ export const useInvoices = () => {
         .insert({
           invoice_number: invoiceNumber,
           customer_id: formData.customer_id,
+          order_id: formData.order_id || null,
           amount: totalAmount,
           issue_date: formData.issue_date,
           due_date: formData.issue_date, // Keep for backward compatibility
