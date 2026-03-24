@@ -438,10 +438,13 @@ export default function Order() {
                 const shippingDate = (order as any).shipping_date ? new Date((order as any).shipping_date) : null;
                 const now = new Date();
                 const oneMonthBefore = shippingDate ? new Date(shippingDate.getTime() - 30 * 24 * 60 * 60 * 1000) : null;
-                const isOverdue = shippingDate && now > shippingDate;
-                const isWarning = shippingDate && !isOverdue && oneMonthBefore && now >= oneMonthBefore;
+                const isCompleted = order.status === "selesai";
+                const isOverdue = !isCompleted && shippingDate && now > shippingDate;
+                const isWarning = !isCompleted && shippingDate && !isOverdue && oneMonthBefore && now >= oneMonthBefore;
 
-                const nameBg = isOverdue
+                const nameBg = isCompleted
+                  ? "bg-emerald-500/15 border-emerald-500/30"
+                  : isOverdue
                   ? "bg-destructive/15 border-destructive/30"
                   : isWarning
                   ? "bg-warning/15 border-warning/30"
@@ -451,9 +454,12 @@ export default function Order() {
                   <TableRow key={order.id}>
                     <TableCell>
                       <div className={cn("rounded-md px-2 py-1", nameBg)}>
-                        <p className={cn("font-medium", isOverdue ? "text-destructive" : isWarning ? "text-warning" : "")}>{order.customers?.name}</p>
+                        <p className={cn("font-medium", isCompleted ? "text-emerald-700 dark:text-emerald-400" : isOverdue ? "text-destructive" : isWarning ? "text-warning" : "")}>{order.customers?.name}</p>
                         <p className="text-xs text-muted-foreground">{order.order_number}</p>
-                        {shippingDate && (
+                        {isCompleted && (
+                          <p className="text-[10px] mt-0.5 text-emerald-600 dark:text-emerald-400 font-semibold">✅ Selesai</p>
+                        )}
+                        {!isCompleted && shippingDate && (
                           <p className={cn("text-[10px] mt-0.5", isOverdue ? "text-destructive" : isWarning ? "text-warning" : "text-muted-foreground")}>
                             📦 {shippingDate.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
                             {isOverdue && " — Terlambat!"}
