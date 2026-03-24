@@ -279,6 +279,9 @@ export type Database = {
       }
       orders: {
         Row: {
+          cetak_cover_status: string | null
+          cetak_isi_status: string | null
+          cetak_packaging_status: string | null
           created_at: string
           customer_id: string
           deleted_at: string | null
@@ -306,6 +309,9 @@ export type Database = {
           wa_group_link: string | null
         }
         Insert: {
+          cetak_cover_status?: string | null
+          cetak_isi_status?: string | null
+          cetak_packaging_status?: string | null
           created_at?: string
           customer_id: string
           deleted_at?: string | null
@@ -333,6 +339,9 @@ export type Database = {
           wa_group_link?: string | null
         }
         Update: {
+          cetak_cover_status?: string | null
+          cetak_isi_status?: string | null
+          cetak_packaging_status?: string | null
           created_at?: string
           customer_id?: string
           deleted_at?: string | null
