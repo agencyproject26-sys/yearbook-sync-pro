@@ -1158,6 +1158,31 @@ export default function Order() {
                   </div>
                 </div>
 
+                {/* Status Cetak */}
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground mb-3 border-b border-border pb-1">Status Cetak</h4>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="rounded-lg border border-border p-3 text-center">
+                      <p className="text-xs text-muted-foreground mb-1">Cover</p>
+                      <Badge className={cetakStatusConfig[(viewingOrder as any).cetak_cover_status || "belum"].className + " text-xs"}>
+                        {cetakStatusConfig[(viewingOrder as any).cetak_cover_status || "belum"].label}
+                      </Badge>
+                    </div>
+                    <div className="rounded-lg border border-border p-3 text-center">
+                      <p className="text-xs text-muted-foreground mb-1">Isi</p>
+                      <Badge className={cetakStatusConfig[(viewingOrder as any).cetak_isi_status || "belum"].className + " text-xs"}>
+                        {cetakStatusConfig[(viewingOrder as any).cetak_isi_status || "belum"].label}
+                      </Badge>
+                    </div>
+                    <div className="rounded-lg border border-border p-3 text-center">
+                      <p className="text-xs text-muted-foreground mb-1">Packaging</p>
+                      <Badge className={cetakStatusConfig[(viewingOrder as any).cetak_packaging_status || "belum"].className + " text-xs"}>
+                        {cetakStatusConfig[(viewingOrder as any).cetak_packaging_status || "belum"].label}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Catatan */}
                 <div>
                   <h4 className="text-sm font-semibold text-foreground mb-3 border-b border-border pb-1">Catatan</h4>
