@@ -499,7 +499,7 @@ export default function Order() {
                           value={order.design_cover_status}
                           onValueChange={(value: DesignStatus) => updateOrder(order.id, { design_cover_status: value })}
                         >
-                          <SelectTrigger className="h-7 w-[110px] text-xs">
+                          <SelectTrigger className={`h-7 w-[110px] text-xs ${order.design_cover_status === "proses" || order.design_cover_status === "review" ? "bg-yellow-100 border-yellow-400 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-600" : order.design_cover_status === "selesai" ? "bg-emerald-100 border-emerald-400 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-600" : ""}`}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
