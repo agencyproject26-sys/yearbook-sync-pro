@@ -981,7 +981,7 @@ export default function Invoice() {
                     <SelectValue placeholder="Pilih order atau ketik manual" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Tidak ada</SelectItem>
+                    <SelectItem value="none">Tidak ada</SelectItem>
                     {orders
                       .filter(o => !formData.customer_id || o.customer_id === formData.customer_id)
                       .map(o => (
