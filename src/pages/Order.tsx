@@ -1269,6 +1269,14 @@ export default function Order() {
                   onChange={(e) => setEditOrderData(prev => ({ ...prev, notes: e.target.value }))}
                 />
               </div>
+              <div className="grid gap-2">
+                <Label>Tanggal Pengiriman</Label>
+                <Input
+                  type="date"
+                  value={editOrderData.shipping_date}
+                  onChange={(e) => setEditOrderData(prev => ({ ...prev, shipping_date: e.target.value }))}
+                />
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Batal</Button>
