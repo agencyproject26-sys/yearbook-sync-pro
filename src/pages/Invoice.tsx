@@ -974,8 +974,8 @@ export default function Invoice() {
               <div className="grid gap-2">
                 <Label>Nomor Order (Opsional)</Label>
                 <Select 
-                  value={formData.order_id || ""} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, order_id: value || "" }))}
+                  value={formData.order_id || "none"} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, order_id: value === "none" ? "" : value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih order atau ketik manual" />
