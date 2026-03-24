@@ -434,12 +434,31 @@ export default function Order() {
             </TableHeader>
             <TableBody>
               {filteredOrders.map((order) => {
+                const shippingDate = (order as any).shipping_date ? new Date((order as any).shipping_date) : null;
+                const now = new Date();
+                const oneMonthBefore = shippingDate ? new Date(shippingDate.getTime() - 30 * 24 * 60 * 60 * 1000) : null;
+                const isOverdue = shippingDate && now > shippingDate;
+                const isWarning = shippingDate && !isOverdue && oneMonthBefore && now >= oneMonthBefore;
+
+                const nameBg = isOverdue
+                  ? "bg-destructive/15 border-destructive/30"
+                  : isWarning
+                  ? "bg-warning/15 border-warning/30"
+                  : "";
+
                 return (
                   <TableRow key={order.id}>
                     <TableCell>
-                      <div>
-                        <p className="font-medium">{order.customers?.name}</p>
+                      <div className={cn("rounded-md px-2 py-1", nameBg)}>
+                        <p className={cn("font-medium", isOverdue ? "text-destructive" : isWarning ? "text-warning" : "")}>{order.customers?.name}</p>
                         <p className="text-xs text-muted-foreground">{order.order_number}</p>
+                        {shippingDate && (
+                          <p className={cn("text-[10px] mt-0.5", isOverdue ? "text-destructive" : isWarning ? "text-warning" : "text-muted-foreground")}>
+                            📦 {shippingDate.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                            {isOverdue && " — Terlambat!"}
+                            {isWarning && " — Segera kirim!"}
+                          </p>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
