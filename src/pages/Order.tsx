@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useOrders, type OrderFormData, type Order, type DesignStatus } from "@/hooks/useOrders";
+import { useOrders, type OrderFormData, type Order, type DesignStatus, type CetakStatus } from "@/hooks/useOrders";
 import { useCustomers } from "@/hooks/useCustomers";
 import { useToast } from "@/hooks/use-toast";
 
