@@ -998,45 +998,196 @@ export default function Order() {
 
         {/* View Order Dialog */}
         <Dialog open={isViewDialogOpen} onOpenChange={(open) => { setIsViewDialogOpen(open); if (!open) setViewingOrder(null); }}>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Detail Order</DialogTitle>
               <DialogDescription>
                 {viewingOrder?.order_number} - {viewingOrder?.customers?.name}
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+            {viewingOrder && (
+              <div className="grid gap-5 py-4">
+                {/* Informasi Umum */}
                 <div>
-                  <p className="text-sm text-muted-foreground">Pelanggan</p>
-                  <p className="font-medium">{viewingOrder?.customers?.name}</p>
+                  <h4 className="text-sm font-semibold text-foreground mb-3 border-b border-border pb-1">Informasi Umum</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Nomor Order</p>
+                      <p className="text-sm font-medium">{viewingOrder.order_number}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Status</p>
+                      <Badge className={statusConfig[viewingOrder.status].className}>
+                        {statusConfig[viewingOrder.status].label}
+                      </Badge>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Pelanggan</p>
+                      <p className="text-sm font-medium">{viewingOrder.customers?.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">PIC Pelanggan</p>
+                      <p className="text-sm font-medium">{viewingOrder.customers?.pic_name || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Nilai Order</p>
+                      <p className="text-sm font-medium">{viewingOrder.value ? `Rp ${viewingOrder.value.toLocaleString("id-ID")}` : "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Tanggal Dibuat</p>
+                      <p className="text-sm font-medium">{new Date(viewingOrder.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Terakhir Diperbarui</p>
+                      <p className="text-sm font-medium">{new Date(viewingOrder.updated_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</p>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Kelengkapan Dokumen */}
                 <div>
-                  <p className="text-sm text-muted-foreground">Status</p>
-                  <Badge className={statusConfig[viewingOrder?.status || "proses"].className}>
-                    {statusConfig[viewingOrder?.status || "proses"].label}
-                  </Badge>
+                  <h4 className="text-sm font-semibold text-foreground mb-3 border-b border-border pb-1">Kelengkapan Dokumen</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex items-center justify-between rounded-lg border border-border p-2.5">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">MoU</span>
+                      </div>
+                      {viewingOrder.mou_link ? (
+                        <Button variant="ghost" size="sm" className="h-7 text-xs text-primary" onClick={() => openExternalLink(viewingOrder.mou_link!)}>
+                          <ExternalLink className="mr-1 h-3 w-3" /> Buka
+                        </Button>
+                      ) : (
+                        <Badge variant="outline" className="text-xs">Belum ada</Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between rounded-lg border border-border p-2.5">
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">Gmail</span>
+                      </div>
+                      {viewingOrder.gmail_email ? (
+                        <span className="text-xs font-medium text-foreground">{viewingOrder.gmail_email}</span>
+                      ) : (
+                        <Badge variant="outline" className="text-xs">Belum ada</Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between rounded-lg border border-border p-2.5">
+                      <div className="flex items-center gap-2">
+                        <FileTextIcon className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">Spreadsheet</span>
+                      </div>
+                      {viewingOrder.spreadsheet_link ? (
+                        <Button variant="ghost" size="sm" className="h-7 text-xs text-primary" onClick={() => openExternalLink(viewingOrder.spreadsheet_link!)}>
+                          <ExternalLink className="mr-1 h-3 w-3" /> Buka
+                        </Button>
+                      ) : (
+                        <Badge variant="outline" className="text-xs">Belum ada</Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between rounded-lg border border-border p-2.5">
+                      <div className="flex items-center gap-2">
+                        <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">Google Drive</span>
+                      </div>
+                      {viewingOrder.drive_link ? (
+                        <Button variant="ghost" size="sm" className="h-7 text-xs text-primary" onClick={() => openExternalLink(viewingOrder.drive_link!)}>
+                          <ExternalLink className="mr-1 h-3 w-3" /> Buka
+                        </Button>
+                      ) : (
+                        <Badge variant="outline" className="text-xs">Belum ada</Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between rounded-lg border border-border p-2.5">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">Google Doc</span>
+                      </div>
+                      {viewingOrder.google_doc_link ? (
+                        <Button variant="ghost" size="sm" className="h-7 text-xs text-primary" onClick={() => openExternalLink(viewingOrder.google_doc_link!)}>
+                          <ExternalLink className="mr-1 h-3 w-3" /> Buka
+                        </Button>
+                      ) : (
+                        <Badge variant="outline" className="text-xs">Belum ada</Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between rounded-lg border border-border p-2.5">
+                      <div className="flex items-center gap-2">
+                        <MessageCircle className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">Grup WA</span>
+                      </div>
+                      {viewingOrder.wa_group_link ? (
+                        <Button variant="ghost" size="sm" className="h-7 text-xs text-primary" onClick={() => openExternalLink(viewingOrder.wa_group_link!)}>
+                          <ExternalLink className="mr-1 h-3 w-3" /> Buka
+                        </Button>
+                      ) : (
+                        <Badge variant="outline" className="text-xs">Belum ada</Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status Desain */}
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground mb-3 border-b border-border pb-1">Status Desain</h4>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="rounded-lg border border-border p-3 text-center">
+                      <p className="text-xs text-muted-foreground mb-1">Cover</p>
+                      <Badge className={designStatusConfig[viewingOrder.design_cover_status].className + " text-xs"}>
+                        {designStatusConfig[viewingOrder.design_cover_status].label}
+                      </Badge>
+                      {viewingOrder.design_cover_link && (
+                        <Button variant="ghost" size="sm" className="mt-1 h-6 text-xs text-primary w-full" onClick={() => openExternalLink(viewingOrder.design_cover_link!)}>
+                          <ExternalLink className="mr-1 h-3 w-3" /> Lihat File
+                        </Button>
+                      )}
+                    </div>
+                    <div className="rounded-lg border border-border p-3 text-center">
+                      <p className="text-xs text-muted-foreground mb-1">Isi</p>
+                      <Badge className={designStatusConfig[viewingOrder.design_isi_status].className + " text-xs"}>
+                        {designStatusConfig[viewingOrder.design_isi_status].label}
+                      </Badge>
+                      {viewingOrder.design_isi_link && (
+                        <Button variant="ghost" size="sm" className="mt-1 h-6 text-xs text-primary w-full" onClick={() => openExternalLink(viewingOrder.design_isi_link!)}>
+                          <ExternalLink className="mr-1 h-3 w-3" /> Lihat File
+                        </Button>
+                      )}
+                    </div>
+                    <div className="rounded-lg border border-border p-3 text-center">
+                      <p className="text-xs text-muted-foreground mb-1">Packaging</p>
+                      <Badge className={designStatusConfig[viewingOrder.design_packaging_status].className + " text-xs"}>
+                        {designStatusConfig[viewingOrder.design_packaging_status].label}
+                      </Badge>
+                      {viewingOrder.design_packaging_link && (
+                        <Button variant="ghost" size="sm" className="mt-1 h-6 text-xs text-primary w-full" onClick={() => openExternalLink(viewingOrder.design_packaging_link!)}>
+                          <ExternalLink className="mr-1 h-3 w-3" /> Lihat File
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Catatan */}
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground mb-3 border-b border-border pb-1">Catatan</h4>
+                  <div className="grid gap-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Deskripsi WA</p>
+                      <p className="text-sm">{viewingOrder.wa_desc || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Catatan Internal</p>
+                      <p className="text-sm">{viewingOrder.notes || "-"}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Tanggal Dibuat</p>
-                <p className="font-medium">{viewingOrder?.created_at ? new Date(viewingOrder.created_at).toLocaleDateString("id-ID") : "-"}</p>
-              </div>
-              {viewingOrder?.gmail_email && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Akun Gmail</p>
-                  <p className="font-medium">{viewingOrder.gmail_email}</p>
-                </div>
-              )}
-              {viewingOrder?.notes && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Catatan</p>
-                  <p className="text-sm">{viewingOrder.notes}</p>
-                </div>
-              )}
-            </div>
+            )}
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>Tutup</Button>
+              <Button onClick={() => { setIsViewDialogOpen(false); if (viewingOrder) handleEditOrder(viewingOrder); }}>
+                <Pencil className="mr-2 h-4 w-4" /> Edit Order
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
