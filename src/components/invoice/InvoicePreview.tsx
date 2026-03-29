@@ -34,10 +34,9 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
     const subtotal = items.reduce((sum, item) => sum + (item.qty * item.price), 0);
 
     // Calculate amount due (unpaid terms total)
-    const paidAmount = paymentTerms
-      .filter((term) => term.paid)
+    const totalTermsAmount = paymentTerms
       .reduce((sum, term) => sum + (term.amount || 0), 0);
-    const amountDue = subtotal - paidAmount;
+    const amountDue = subtotal - totalTermsAmount;
 
     return (
       <div
